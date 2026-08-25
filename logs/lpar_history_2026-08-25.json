@@ -220920,5 +220920,138 @@
         "services_down": "None"
       }
     ]
+  },
+  {
+    "timestamp": "2026-08-25 18:20:06",
+    "records": [
+      {
+        "entry_id": "7441f9c8ef1f4aa0893a949a7c1fa770",
+        "timestamp": "2026-08-25 18:20:06",
+        "lpar": "JDAP05",
+        "server": "JDAP05",
+        "ip": "192.168.55.30",
+        "cpu": 0.0,
+        "asp": 0.0,
+        "jobs": 0,
+        "status": "OFFLINE",
+        "subsystems_summary": "0 Active",
+        "subsystems_detail": [],
+        "services_down": "None"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-25 18:20:06",
+    "records": [
+      {
+        "entry_id": "a0ce17a4450c4de5b0148f8c8bd94360",
+        "timestamp": "2026-08-25 18:20:06",
+        "lpar": "JDAP04",
+        "server": "JDAP04",
+        "ip": "192.168.54.30",
+        "cpu": 0.0,
+        "asp": 0.0,
+        "jobs": 0,
+        "status": "OFFLINE",
+        "subsystems_summary": "0 Active",
+        "subsystems_detail": [],
+        "services_down": "None"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-25 18:20:06",
+    "records": [
+      {
+        "entry_id": "9ba4f4ee982443859b1d21bad3d8b0ae",
+        "timestamp": "2026-08-25 18:20:06",
+        "lpar": "JDAP03",
+        "server": "JDAP03",
+        "ip": "192.168.52.30",
+        "cpu": 0.0,
+        "asp": 0.0,
+        "jobs": 0,
+        "status": "OFFLINE",
+        "subsystems_summary": "0 Active",
+        "subsystems_detail": [],
+        "services_down": "None"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-25 18:20:06",
+    "records": [
+      {
+        "entry_id": "db9e2d3eb52346c99fce4d3d26e26f0c",
+        "timestamp": "2026-08-25 18:20:06",
+        "lpar": "JDAP08",
+        "server": "JDAP08",
+        "ip": "192.168.50.130",
+        "cpu": 0.0,
+        "asp": 0.0,
+        "jobs": 0,
+        "status": "OFFLINE",
+        "subsystems_summary": "0 Active",
+        "subsystems_detail": [],
+        "services_down": "None"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-25 18:20:06",
+    "records": [
+      {
+        "entry_id": "80b8a3ce1ddc43c38f46dfdcb0257477",
+        "timestamp": "2026-08-25 18:20:06",
+        "lpar": "JDAP06",
+        "server": "JDAP06",
+        "ip": "192.168.56.30",
+        "cpu": 0.0,
+        "asp": 0.0,
+        "jobs": 0,
+        "status": "OFFLINE",
+        "subsystems_summary": "0 Active",
+        "subsystems_detail": [],
+        "services_down": "None"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-25 18:20:06",
+    "records": [
+      {
+        "entry_id": "b23a5d7c2b404ff684ebf23530c43ca1",
+        "timestamp": "2026-08-25 18:20:06",
+        "lpar": "JDAP07",
+        "server": "JDAP07",
+        "ip": "192.168.51.30",
+        "cpu": 0.0,
+        "asp": 0.0,
+        "jobs": 0,
+        "status": "OFFLINE",
+        "subsystems_summary": "0 Active",
+        "subsystems_detail": [],
+        "services_down": "None"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-25 18:20:06",
+    "records": [
+      {
+        "entry_id": "0a651484993545dd8a8a0364c138cb18",
+        "timestamp": "2026-08-25 18:20:06",
+        "lpar": "JDAP02",
+        "server": "JDAP02",
+        "ip": "192.168.50.30",
+        "cpu": 0.0,
+        "asp": 0.0,
+        "jobs": 0,
+        "status": "OFFLINE",
+        "subsystems_summary": "0 Active",
+        "subsystems_detail": [],
+        "services_down": "None"
+      }
+    ]
   }
 ]

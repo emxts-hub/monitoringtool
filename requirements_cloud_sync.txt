@@ -1,8 +1,0 @@
-# Firebase Cloud Sync Dependencies
-# Add these to your existing requirements.txt
-
-# Firebase Admin SDK - for Firestore cloud database
-firebase-admin>=6.0.0
-
-# Note: Your existing PyQt6 dependencies remain the same
-# This package is the only new dependency needed for cloud sync
