@@ -1,377 +1,89 @@
 {
     "SERVER_CONFIGS": {
-        "JDAP08": {
-            "host": "192.168.50.130",
-            "db": "I805175W"
-        },
-        "JDAP01": {
-            "host": "192.168.53.30",
-            "db": "C805175W"
-        },
-        "JDAP02": {
-            "host": "192.168.50.30",
-            "db": "RRGJDAP02"
-        },
-        "JDAP03": {
-            "host": "192.168.52.30",
-            "db": "RRGJDAP03"
-        },
         "JDAP04": {
             "host": "192.168.54.30",
             "db": "RRGJDAP04"
         },
         "JDAP05": {
             "host": "192.168.55.30",
-            "db": "RRGJDAP05"
+            "db": "*LOCAL"
         },
         "JDAP06": {
             "host": "192.168.56.30",
-            "db": "RRGJDAP06"
+            "db": "*LOCAL"
         },
         "JDAP07": {
             "host": "192.168.51.30",
-            "db": "SEAWOLF"
+            "db": "*LOCAL"
+        },
+        "JDAP02": {
+            "host": "192.168.50.30",
+            "db": "*LOCAL"
+        },
+        "JDAP08": {
+            "host": "192.168.50.130",
+            "db": "*LOCAL"
+        },
+        "JDAP01": {
+            "host": "192.168.53.30",
+            "db": "*LOCAL"
+        },
+        "JDAP03": {
+            "host": "192.168.52.30",
+            "db": "*LOCAL"
         }
     },
     "EXPECTED_SUBSYSTEMS": {
-        "JDAP08": [
-            "AIRSBS_DJP",
-            "AIRSBS_MNS",
-            "AIRSBS_PLC",
-            "AIRSBS_RAC",
-            "AIRSBS_RDS",
-            "AIRSBS_RHI",
-            "AIRSBS_RSC",
-            "AIRSBS_RTV",
-            "AIRSBS_SSD",
-            "BCH_DJP",
-            "BCH_MNS",
-            "BCH_PLC",
-            "BCH_RAC",
-            "BCH_RDS",
-            "BCH_RHI",
-            "BCH_RPI",
-            "BCH_RSC",
-            "BCH_RTV",
-            "BCH_SVR",
-            "BCH_S50",
-            "INT_DJP",
-            "INT_INV",
-            "INT_MNS",
-            "INT_PLC",
-            "INT_RAC",
-            "INT_RDS",
-            "INT_RHI",
-            "INT_RSC",
-            "INT_RTV",
-            "INT_SVR",
-            "INT_S50",
-            "INT_ZZZ",
-            "QBATCH",
-            "QCMN",
-            "QCTL",
-            "QHTTPSVR",
-            "QINTER",
-            "QSERVER",
-            "QSNADS",
-            "QSPL",
-            "QSYSWRK",
-            "QUSRWRK",
-            "Q1ABRMNET"
-        ],
-        "JDAP01": [
-            "AIRSBS_RSC",
-            "BCH_RSC",
-            "INT_RSC",
-            "INT_RSCRF",
-            "INT_RSCWMS",
-            "INT_ZZZ",
-            "QBATCH",
-            "QCMN",
-            "QCTL",
-            "QHTTPSVR",
-            "QINTER",
-            "QSERVER",
-            "QSNADS",
-            "QSPL",
-            "QSYSWRK",
-            "QUSRWRK",
-            "Q1ABRMNET"
-        ],
-        "JDAP02": [
-            "AIRSBS_RDS",
-            "BCH_RDS",
-            "BCH_RSS",
-            "INT_INV",
-            "INT_RDS",
-            "INT_RSS",
-            "INT_ZZZ",
-            "QBATCH",
-            "QCMN",
-            "QCTL",
-            "QHTTPSVR",
-            "QINTER",
-            "QSERVER",
-            "QSNADS",
-            "QSPL",
-            "QSYSWRK",
-            "QUSRWRK",
-            "Q1ABRMNET"
-        ],
-        "JDAP03": [
-            "AIRSBS_PLC",
-            "AIRSBS_RHI",
-            "AIRSBS_RTV",
-            "BCH_PLC",
-            "BCH_RBI",
-            "BCH_RHI",
-            "BCH_RLS",
-            "BCH_RTV",
-            "INT_PLC",
-            "INT_RHI",
-            "INT_RTV",
-            "INT_ZZZ",
-            "QBATCH",
-            "QCMN",
-            "QCTL",
-            "QHTTPSVR",
-            "QINTER",
-            "QSERVER",
-            "QSNADS",
-            "QSPL",
-            "QSYSWRK",
-            "QUSRWRK",
-            "Q1ABRMNET"
-        ],
         "JDAP04": [
-            "AIRSBS_DJP",
-            "AIRSBS_RAC",
-            "AIRSBS_S50",
-            "BCH_DJP",
-            "BCH_RAC",
-            "BCH_SVR",
-            "BCH_S50",
-            "INT_DJP",
-            "INT_RAC",
-            "INT_ZZZ",
-            "QBATCH",
-            "QCMN",
-            "QCTL",
-            "QHTTPSVR",
             "QINTER",
+            "QBATCH",
             "QSERVER",
-            "QSNADS",
-            "QSPL",
-            "QSYSWRK",
-            "QUSRWRK",
-            "Q1ABRMNET"
+            "QSYSWRK"
         ],
         "JDAP05": [
-            "AIRSBS_MNS",
-            "BCH_MNS",
-            "INT_MNS",
-            "INT_ZZZ",
-            "QBATCH",
-            "QCMN",
-            "QCTL",
-            "QHTTPSVR",
             "QINTER",
+            "QBATCH",
             "QSERVER",
-            "QSNADS",
-            "QSPL",
-            "QSYSWRK",
-            "QUSRWRK",
-            "Q1ABRMNET"
+            "QSYSWRK"
         ],
         "JDAP06": [
-            "AIRSBS_SSD",
-            "BCH_SSD",
-            "INT_SSD",
-            "INT_ZZZ",
-            "QBATCH",
-            "QCMN",
-            "QCTL",
-            "QHTTPSVR",
             "QINTER",
+            "QBATCH",
             "QSERVER",
-            "QSNADS",
-            "QSPL",
-            "QSYSWRK",
-            "QUSRWRK",
-            "Q1ABRMNET"
+            "QSYSWRK"
         ],
         "JDAP07": [
-            "ITQINTER",
-            "QBATCH",
-            "QCMN",
-            "QCTL",
-            "QHTTPSVR",
             "QINTER",
+            "QBATCH",
             "QSERVER",
-            "QSNADS",
-            "QSPL",
-            "QSYSWRK",
-            "QUSRWRK",
-            "Q1ABRMNET"
+            "QSYSWRK"
+        ],
+        "JDAP02": [
+            "QINTER",
+            "QBATCH",
+            "QSERVER",
+            "QSYSWRK"
+        ],
+        "JDAP08": [
+            "QINTER",
+            "QBATCH",
+            "QSERVER",
+            "QSYSWRK"
+        ],
+        "JDAP01": [
+            "QINTER",
+            "QBATCH",
+            "QSERVER",
+            "QSYSWRK"
+        ],
+        "JDAP03": [
+            "QINTER",
+            "QBATCH",
+            "QSERVER",
+            "QSYSWRK"
         ]
     },
     "EXPECTED_PORTS": {
-        "JDAP08": [
-            {
-                "port": 21,
-                "name": "FTP"
-            },
-            {
-                "port": 22,
-                "name": "SSH"
-            },
-            {
-                "port": 23,
-                "name": "TELNET"
-            },
-            {
-                "port": 25,
-                "name": "SMTP"
-            },
-            {
-                "port": 445,
-                "name": "NETSERVER"
-            },
-            {
-                "port": 992,
-                "name": "TLS"
-            },
-            {
-                "port": 2001,
-                "name": "HTTP"
-            },
-            {
-                "port": 2002,
-                "name": "HTTP"
-            }
-        ],
-        "JDAP01": [
-            {
-                "port": 21,
-                "name": "FTP"
-            },
-            {
-                "port": 22,
-                "name": "SSH"
-            },
-            {
-                "port": 23,
-                "name": "TELNET"
-            },
-            {
-                "port": 25,
-                "name": "SMTP"
-            },
-            {
-                "port": 445,
-                "name": "NETSERVER"
-            },
-            {
-                "port": 992,
-                "name": "TLS"
-            },
-            {
-                "port": 2001,
-                "name": "HTTP"
-            },
-            {
-                "port": 2002,
-                "name": "HTTP"
-            },
-            {
-                "port": 31111,
-                "name": "NETMAN"
-            },
-            {
-                "port": 31114,
-                "name": "JOBMANAGER"
-            }
-        ],
-        "JDAP02": [
-            {
-                "port": 21,
-                "name": "FTP"
-            },
-            {
-                "port": 22,
-                "name": "SSH"
-            },
-            {
-                "port": 23,
-                "name": "TELNET"
-            },
-            {
-                "port": 25,
-                "name": "SMTP"
-            },
-            {
-                "port": 445,
-                "name": "NETSERVER"
-            },
-            {
-                "port": 2001,
-                "name": "HTTP"
-            },
-            {
-                "port": 2002,
-                "name": "HTTP"
-            },
-            {
-                "port": 31111,
-                "name": "NETMAN"
-            },
-            {
-                "port": 31114,
-                "name": "JOBMANAGER"
-            }
-        ],
-        "JDAP03": [
-            {
-                "port": 21,
-                "name": "FTP"
-            },
-            {
-                "port": 22,
-                "name": "SSH"
-            },
-            {
-                "port": 23,
-                "name": "TELNET"
-            },
-            {
-                "port": 25,
-                "name": "SMTP"
-            },
-            {
-                "port": 445,
-                "name": "NETSERVER"
-            },
-            {
-                "port": 992,
-                "name": "TLS"
-            },
-            {
-                "port": 2001,
-                "name": "HTTP"
-            },
-            {
-                "port": 2002,
-                "name": "HTTP"
-            },
-            {
-                "port": 31111,
-                "name": "NETMAN"
-            },
-            {
-                "port": 31114,
-                "name": "JOBMANAGER"
-            }
-        ],
         "JDAP04": [
             {
                 "port": 21,
@@ -382,36 +94,8 @@
                 "name": "SSH"
             },
             {
-                "port": 23,
-                "name": "TELNET"
-            },
-            {
-                "port": 25,
-                "name": "SMTP"
-            },
-            {
-                "port": 445,
-                "name": "NETSERVER"
-            },
-            {
-                "port": 992,
-                "name": "TLS"
-            },
-            {
-                "port": 2001,
-                "name": "HTTP"
-            },
-            {
-                "port": 2002,
-                "name": "HTTP"
-            },
-            {
-                "port": 31111,
-                "name": "NETMAN"
-            },
-            {
-                "port": 31114,
-                "name": "JOBMANAGER"
+                "port": 8471,
+                "name": "DDM"
             }
         ],
         "JDAP05": [
@@ -424,36 +108,8 @@
                 "name": "SSH"
             },
             {
-                "port": 23,
-                "name": "TELNET"
-            },
-            {
-                "port": 25,
-                "name": "SMTP"
-            },
-            {
-                "port": 445,
-                "name": "NETSERVER"
-            },
-            {
-                "port": 992,
-                "name": "TLS"
-            },
-            {
-                "port": 2001,
-                "name": "HTTP"
-            },
-            {
-                "port": 2002,
-                "name": "HTTP"
-            },
-            {
-                "port": 31111,
-                "name": "NETMAN"
-            },
-            {
-                "port": 31114,
-                "name": "JOBMANAGER"
+                "port": 8471,
+                "name": "DDM"
             }
         ],
         "JDAP06": [
@@ -466,36 +122,8 @@
                 "name": "SSH"
             },
             {
-                "port": 23,
-                "name": "TELNET"
-            },
-            {
-                "port": 25,
-                "name": "SMTP"
-            },
-            {
-                "port": 445,
-                "name": "NETSERVER"
-            },
-            {
-                "port": 992,
-                "name": "TLS"
-            },
-            {
-                "port": 2001,
-                "name": "HTTP"
-            },
-            {
-                "port": 2002,
-                "name": "HTTP"
-            },
-            {
-                "port": 31111,
-                "name": "NETMAN"
-            },
-            {
-                "port": 31114,
-                "name": "JOBMANAGER"
+                "port": 8471,
+                "name": "DDM"
             }
         ],
         "JDAP07": [
@@ -508,29 +136,88 @@
                 "name": "SSH"
             },
             {
-                "port": 23,
-                "name": "TELNET"
+                "port": 8471,
+                "name": "DDM"
+            }
+        ],
+        "JDAP02": [
+            {
+                "port": 21,
+                "name": "FTP"
             },
             {
-                "port": 25,
-                "name": "SMTP"
+                "port": 22,
+                "name": "SSH"
             },
             {
-                "port": 445,
-                "name": "NETSERVER"
+                "port": 8471,
+                "name": "DDM"
+            }
+        ],
+        "JDAP08": [
+            {
+                "port": 21,
+                "name": "FTP"
             },
             {
-                "port": 992,
-                "name": "TLS"
+                "port": 22,
+                "name": "SSH"
             },
             {
-                "port": 2001,
-                "name": "HTTP"
+                "port": 8471,
+                "name": "DDM"
+            }
+        ],
+        "JDAP01": [
+            {
+                "port": 21,
+                "name": "FTP"
             },
             {
-                "port": 2002,
-                "name": "HTTP"
+                "port": 22,
+                "name": "SSH"
+            },
+            {
+                "port": 8471,
+                "name": "DDM"
+            }
+        ],
+        "JDAP03": [
+            {
+                "port": 21,
+                "name": "FTP"
+            },
+            {
+                "port": 22,
+                "name": "SSH"
+            },
+            {
+                "port": 8471,
+                "name": "DDM"
             }
         ]
+    },
+    "EMAIL_ALERTS": {
+        "enabled": true,
+        "smtp_server": "smtp.gmail.com",
+        "port": 587,
+        "use_tls": true,
+        "username": "as400monitoringalert@gmail.com",
+        "password": "iece noft urgi nczw",
+        "from_address": "as400monitoringalert@gmail.com",
+        "to_addresses": [
+            "reymart_delara@questronix.com.ph",
+            "romar_dizon@questronix.com.ph",
+            "brylle.richard_paraoan@questronix.com.ph",
+            "carl.sonmuel_peregrino@questronix.com.ph",
+            "jonas_pascual@questronix.com.ph",
+            "john.reve_esclamado@questronix.com.ph",
+            "patrick.louie_sandoval@questronix.com.ph",
+            "henelyn.jhoy_mitra@questronix.com.ph",
+            "jherico.marvin_bunao@questronix.com.ph",
+            "mark.christian_ugalde@questronix.com.ph"
+        ],
+        "threshold_percent": 90,
+        "cooldown_minutes": 30
     }
 }

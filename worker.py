@@ -7,13 +7,93 @@ import time
 import uuid
 import platform
 import subprocess
+import smtplib
 from datetime import datetime, timedelta
+from email.message import EmailMessage
 import pyodbc
 from PyQt6.QtCore import QRunnable, QObject, pyqtSignal, QThreadPool
-from config import SERVER_CONFIGS, MONITORED_PORTS, EXPECTED_PORTS, get_logs_dir
+from config import SERVER_CONFIGS, MONITORED_PORTS, EXPECTED_PORTS, get_logs_dir, load_email_alerts
 
 
 _LOG_WRITE_LOCK = threading.Lock()
+_ALERT_STATE_LOCK = threading.Lock()
+_LAST_ASP_ALERT_STATE = {}
+
+
+def _normalize_recipients(value):
+    if isinstance(value, str):
+        recipients = [item.strip() for item in value.split(',') if item.strip()]
+    elif isinstance(value, (list, tuple, set)):
+        recipients = [str(item).strip() for item in value if str(item).strip()]
+    else:
+        recipients = []
+    return recipients
+
+
+def send_asp_alert(server_name, asp_value, threshold_percent):
+    """Sends an SMTP notification when ASP usage crosses the configured threshold."""
+    alert_cfg = load_email_alerts()
+    if not alert_cfg.get("enabled"):
+        return False
+
+    smtp_server = str(alert_cfg.get("smtp_server", "")).strip()
+    recipients = _normalize_recipients(alert_cfg.get("to_addresses", []))
+    if not smtp_server or not recipients:
+        return False
+
+    username = str(alert_cfg.get("username", "")).strip()
+    password = str(alert_cfg.get("password", "")).strip()
+    from_address = str(alert_cfg.get("from_address", "")).strip() or username or "alerts@localhost"
+    port = int(alert_cfg.get("port", 587) or 587)
+    use_tls = bool(alert_cfg.get("use_tls", True))
+
+    try:
+        msg = EmailMessage()
+        msg["Subject"] = f"ASP Threshold Alert - {server_name}"
+        msg["From"] = from_address
+        msg["To"] = ", ".join(recipients)
+        msg.set_content(
+            f"ASP usage on {server_name} reached {asp_value:.2f}% and exceeded the configured threshold of {threshold_percent:.2f}%.\n\n"
+            f"This notification was generated automatically by the IBM i dashboard."
+        )
+
+        with smtplib.SMTP(smtp_server, port, timeout=15) as smtp:
+            if use_tls:
+                smtp.starttls()
+            if username and password:
+                smtp.login(username, password)
+            smtp.send_message(msg)
+        return True
+    except Exception:
+        return False
+
+
+def maybe_send_asp_alert(server_name, asp_value):
+    """Sends an ASP notification only on threshold crossings and respects cooldown."""
+    alert_cfg = load_email_alerts()
+    if not alert_cfg.get("enabled"):
+        return False
+
+    threshold_percent = float(alert_cfg.get("threshold_percent", 90.0) or 90.0)
+    cooldown_seconds = max(0, int(float(alert_cfg.get("cooldown_minutes", 30) or 30) * 60))
+
+    with _ALERT_STATE_LOCK:
+        state = _LAST_ASP_ALERT_STATE.get(server_name, {"armed": False, "sent_at": 0.0})
+        now = time.monotonic()
+
+        if asp_value < threshold_percent:
+            state["armed"] = False
+            _LAST_ASP_ALERT_STATE[server_name] = state
+            return False
+
+        if state.get("armed") and (now - float(state.get("sent_at", 0.0))) < cooldown_seconds:
+            return False
+
+        state["armed"] = True
+        state["sent_at"] = now
+        _LAST_ASP_ALERT_STATE[server_name] = state
+
+    return send_asp_alert(server_name, asp_value, threshold_percent)
 
 
 def ping_ip(host_ip, timeout_ms=1000):
@@ -356,5 +436,9 @@ class SingleLparRunnable(QRunnable):
 
         if not self.is_cancelled():
             result["sync_duration_ms"] = max(0, int((time.monotonic() - started_at) * 1000))
+            try:
+                maybe_send_asp_alert(self.server, float(result.get("asp", 0.0) or 0.0))
+            except Exception:
+                pass
             save_single_lpar_log(result)
             self.signals.server_fetched.emit(result)

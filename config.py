@@ -43,6 +43,18 @@ def get_resource_path(relative_path):
 DEFAULT_SERVER_CONFIGS = {}
 DEFAULT_EXPECTED_SUBSYSTEMS = {}
 DEFAULT_EXPECTED_PORTS = {}
+DEFAULT_EMAIL_ALERTS = {
+    "enabled": False,
+    "smtp_server": "smtp.example.com",
+    "port": 587,
+    "use_tls": True,
+    "username": "",
+    "password": "",
+    "from_address": "alerts@example.com",
+    "to_addresses": ["ops@example.com"],
+    "threshold_percent": 85,
+    "cooldown_minutes": 30,
+}
 
 def load_server_configs():
     """Loads server configurations from config.json or returns default."""
@@ -80,18 +92,41 @@ def load_expected_ports():
             return DEFAULT_EXPECTED_PORTS.copy()
     return DEFAULT_EXPECTED_PORTS.copy()
 
-def save_all_configs(server_configs, expected_subsystems=None, expected_ports=None):
-    """Saves updated SERVER_CONFIGS, EXPECTED_SUBSYSTEMS, and EXPECTED_PORTS directly to config.json."""
+
+def load_email_alerts():
+    """Loads SMTP notification settings for ASP alerts."""
+    config_path = get_config_path()
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                alerts = data.get("EMAIL_ALERTS", {})
+                merged = DEFAULT_EMAIL_ALERTS.copy()
+                if isinstance(alerts, dict):
+                    merged.update(alerts)
+                if isinstance(merged.get("to_addresses"), str):
+                    merged["to_addresses"] = [merged["to_addresses"]]
+                return merged
+        except Exception:
+            return DEFAULT_EMAIL_ALERTS.copy()
+    return DEFAULT_EMAIL_ALERTS.copy()
+
+
+def save_all_configs(server_configs, expected_subsystems=None, expected_ports=None, email_alerts=None):
+    """Saves updated configuration data directly to config.json."""
     config_path = get_config_path()
     if expected_subsystems is None:
         expected_subsystems = load_expected_subsystems()
     if expected_ports is None:
         expected_ports = load_expected_ports()
+    if email_alerts is None:
+        email_alerts = load_email_alerts()
 
     data = {
         "SERVER_CONFIGS": server_configs,
         "EXPECTED_SUBSYSTEMS": expected_subsystems,
-        "EXPECTED_PORTS": expected_ports
+        "EXPECTED_PORTS": expected_ports,
+        "EMAIL_ALERTS": email_alerts,
     }
 
     try:
@@ -104,6 +139,7 @@ def save_all_configs(server_configs, expected_subsystems=None, expected_ports=No
 SERVER_CONFIGS = load_server_configs()
 EXPECTED_SUBSYSTEMS = load_expected_subsystems()
 EXPECTED_PORTS = load_expected_ports()
+EMAIL_ALERTS = load_email_alerts()
 
 MONITORED_PORTS = {}
 
