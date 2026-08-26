@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import re
+import struct
 import threading
 import time
 import uuid
@@ -12,12 +13,14 @@ from datetime import datetime, timedelta
 from email.message import EmailMessage
 import pyodbc
 from PyQt6.QtCore import QRunnable, QObject, pyqtSignal, QThreadPool
-from config import SERVER_CONFIGS, MONITORED_PORTS, EXPECTED_PORTS, get_logs_dir, load_email_alerts
+from config import SERVER_CONFIGS, MONITORED_PORTS, EXPECTED_PORTS, get_logs_dir, load_email_alerts, get_resource_path
 
 
 _LOG_WRITE_LOCK = threading.Lock()
 _ALERT_STATE_LOCK = threading.Lock()
 _LAST_ASP_ALERT_STATE = {}
+_LAST_ASP_SOUND_STATE = {"armed": False, "sent_at": 0.0}
+_LAST_ASP_EMAIL_STATE = {}
 
 
 def _normalize_recipients(value):
@@ -28,6 +31,97 @@ def _normalize_recipients(value):
     else:
         recipients = []
     return recipients
+
+
+def _repair_wav_file_if_needed(wav_path):
+    """Fixes common WAV header corruption so Windows does not fall back to the system default chime."""
+    try:
+        with open(wav_path, "rb") as f:
+            data = f.read()
+    except Exception:
+        return False
+
+    if len(data) < 12 or data[:4] != b"RIFF" or data[8:12] != b"WAVE":
+        return False
+
+    riff_size = len(data) - 8
+    data_idx = data.find(b"data")
+    if data_idx == -1:
+        return False
+
+    data_size = len(data) - data_idx - 8
+    current_riff = struct.unpack("<I", data[4:8])[0]
+    current_data = struct.unpack("<I", data[data_idx + 4:data_idx + 8])[0]
+
+    if current_riff == riff_size and current_data == data_size:
+        return True
+
+    try:
+        fixed = bytearray(data)
+        fixed[4:8] = struct.pack("<I", riff_size)
+        fixed[data_idx + 4:data_idx + 8] = struct.pack("<I", data_size)
+        with open(wav_path, "wb") as f:
+            f.write(fixed)
+        return True
+    except Exception:
+        return False
+
+
+def play_asp_alert_sound():
+    """Plays the configured alert WAV asynchronously without blocking the monitoring thread."""
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    candidate_paths = [
+        get_resource_path("alert.wav"),
+        os.path.join(base_dir, "alert.wav"),
+        os.path.join(os.getcwd(), "alert.wav"),
+    ]
+
+    for path in candidate_paths:
+        if os.path.exists(path):
+            wav_path = path
+            break
+    else:
+        wav_files = []
+        for root, _, files in os.walk(base_dir):
+            for name in files:
+                if name.lower().endswith(".wav"):
+                    wav_files.append(os.path.join(root, name))
+        if wav_files:
+            wav_path = wav_files[0]
+        else:
+            return False
+
+    try:
+        _repair_wav_file_if_needed(wav_path)
+
+        if sys.platform == "win32":
+            import winsound
+            winsound.PlaySound(str(wav_path), winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_NODEFAULT)
+            return True
+
+        if sys.platform == "darwin":
+            try:
+                subprocess.Popen(["afplay", str(wav_path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, close_fds=True)
+                return True
+            except Exception:
+                return False
+
+        try:
+            subprocess.Popen([
+                "ffplay",
+                "-nodisp",
+                "-autoexit",
+                str(wav_path),
+            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, close_fds=True)
+            return True
+        except Exception:
+            try:
+                subprocess.Popen(["aplay", str(wav_path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, close_fds=True)
+                return True
+            except Exception:
+                return False
+    except Exception:
+        return False
 
 
 def send_asp_alert(server_name, asp_value, threshold_percent):
@@ -49,7 +143,7 @@ def send_asp_alert(server_name, asp_value, threshold_percent):
 
     try:
         msg = EmailMessage()
-        msg["Subject"] = f"ASP Threshold Alert - {server_name}"
+        msg["Subject"] = f"[THIS IS TEST MAIL PLEASE DISREGARD] ASP Threshold Alert - {server_name}"
         msg["From"] = from_address
         msg["To"] = ", ".join(recipients)
         msg.set_content(
@@ -69,31 +163,44 @@ def send_asp_alert(server_name, asp_value, threshold_percent):
 
 
 def maybe_send_asp_alert(server_name, asp_value):
-    """Sends an ASP notification only on threshold crossings and respects cooldown."""
+    """Plays the ASP sound on each refresh while the server remains above threshold; email keeps its own cooldown."""
     alert_cfg = load_email_alerts()
-    if not alert_cfg.get("enabled"):
-        return False
+    email_enabled = bool(alert_cfg.get("enabled"))
 
-    threshold_percent = float(alert_cfg.get("threshold_percent", 90.0) or 90.0)
-    cooldown_seconds = max(0, int(float(alert_cfg.get("cooldown_minutes", 30) or 30) * 60))
+    try:
+        asp_value = float(asp_value or 0.0)
+    except (TypeError, ValueError):
+        asp_value = 0.0
+
+    threshold_percent = float(alert_cfg.get("threshold_percent", 40.0) or 40.0)
+    cooldown_seconds = max(0, int(float(alert_cfg.get("cooldown_minutes", 10) or 10) * 60))
 
     with _ALERT_STATE_LOCK:
-        state = _LAST_ASP_ALERT_STATE.get(server_name, {"armed": False, "sent_at": 0.0})
         now = time.monotonic()
+        state = _LAST_ASP_ALERT_STATE.get(server_name, {"armed": False, "sent_at": 0.0})
 
         if asp_value < threshold_percent:
             state["armed"] = False
+            state["sent_at"] = 0.0
             _LAST_ASP_ALERT_STATE[server_name] = state
             return False
 
-        if state.get("armed") and (now - float(state.get("sent_at", 0.0))) < cooldown_seconds:
-            return False
-
         state["armed"] = True
-        state["sent_at"] = now
         _LAST_ASP_ALERT_STATE[server_name] = state
 
-    return send_asp_alert(server_name, asp_value, threshold_percent)
+        email_state = _LAST_ASP_EMAIL_STATE.get(server_name, {"sent_at": 0.0})
+        email_due = not email_enabled or (now - float(email_state.get("sent_at", 0.0))) >= cooldown_seconds
+        if email_enabled and email_due:
+            email_state["sent_at"] = now
+            _LAST_ASP_EMAIL_STATE[server_name] = email_state
+            email_should_send = True
+        else:
+            email_should_send = False
+
+    sound_played = play_asp_alert_sound()
+    if email_should_send:
+        return send_asp_alert(server_name, asp_value, threshold_percent) or sound_played
+    return sound_played
 
 
 def ping_ip(host_ip, timeout_ms=1000):
@@ -151,12 +258,17 @@ def save_single_lpar_log(sys_info, server_configs=None):
     configs = server_configs or SERVER_CONFIGS
 
     down_services = []
-    if sys_info.get("ports"):
-        down_services = [
-            p.get("name") or p.get("service") 
-            for p in sys_info["ports"] 
-            if not p.get("is_up")
-        ]
+    ports = sys_info.get("ports")
+    if isinstance(ports, list):
+        for port in ports:
+            if not isinstance(port, dict):
+                continue
+            if port.get("is_up") is False:
+                name = port.get("name") or port.get("service")
+                if name is None and port.get("port") is not None:
+                    name = f"Port {port.get('port')}"
+                if name:
+                    down_services.append(name)
 
     services_down_val = down_services if down_services else "None"
     server_name = sys_info.get("server")

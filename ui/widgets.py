@@ -401,17 +401,33 @@ class SubsystemGridWidget(QWidget):
         super().__init__(parent)
         self.server_name = server_name
         self.on_expand_callback = on_expand_callback
-        self.expected_subs = EXPECTED_SUBSYSTEMS.get(server_name, [])
+
+        def normalize_name(name):
+            return str(name).strip().upper() if name is not None else ""
+
+        self.expected_subs = [
+            normalize_name(item)
+            for item in EXPECTED_SUBSYSTEMS.get(server_name, [])
+        ]
 
         names = [
-            sub["name"] if isinstance(sub, dict) else sub
+            normalize_name(sub["name"] if isinstance(sub, dict) else sub)
             for sub in active_subsystems
         ]
-        self.active_set = set(names)
+        self.active_set = set(name for name in names if name)
 
-        running_count = sum(1 for s in self.expected_subs if s in self.active_set)
-        total_count = len(self.expected_subs)
-        self.all_healthy = running_count == total_count
+        if self.expected_subs:
+            expected_running_count = sum(1 for s in self.expected_subs if s in self.active_set)
+            expected_total_count = len(self.expected_subs)
+            actual_running_count = len(self.active_set)
+        else:
+            expected_running_count = len(self.active_set)
+            expected_total_count = len(self.active_set)
+            actual_running_count = len(self.active_set)
+
+        self.all_healthy = expected_running_count == expected_total_count
+        self.expected_running_count = expected_running_count
+        self.actual_running_count = actual_running_count
 
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(4, 4, 4, 4)
@@ -424,7 +440,7 @@ class SubsystemGridWidget(QWidget):
         h_layout.setSpacing(8)
 
         header_color = "#3fb950" if self.all_healthy else "#f85149"
-        self.header_label = QLabel(f"● {running_count} / {total_count} Active")
+        self.header_label = QLabel(f"● {self.expected_running_count} / {self.actual_running_count} Active")
         self.header_label.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
         self.header_label.setStyleSheet(f"color: {header_color}; background: transparent;")
         h_layout.addWidget(self.header_label)

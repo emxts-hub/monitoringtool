@@ -1264,18 +1264,24 @@ class IBMiDashboard(QMainWindow):
                 prefix = "".join([c for c in srv if not c.isdigit()]) or "OTHER"
                 groups.setdefault(prefix, []).append(srv)
 
-            for group_name, srv_list in sorted(groups.items()):
-                group_lbl = QLabel(f"📁 {group_name} Environment ({len(srv_list)})")
-                group_lbl.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
-                group_lbl.setStyleSheet("color: #388bfd; font-weight: bold; margin-top: 6px; background: transparent;")
-                self.cards_grid.addWidget(group_lbl, current_row, 0, 1, cols)
-                current_row += 1
-
-                for idx, srv in enumerate(srv_list):
-                    r = current_row + (idx // cols)
+            if len(groups) <= 1:
+                for idx, srv in enumerate(filtered_servers):
+                    r = idx // cols
                     c = idx % cols
                     self.cards_grid.addWidget(self.card_widgets[srv], r, c, Qt.AlignmentFlag.AlignTop)
-                current_row += (len(srv_list) + cols - 1) // cols
+            else:
+                for group_name, srv_list in sorted(groups.items()):
+                    group_lbl = QLabel(f"📁 {group_name} Environment ({len(srv_list)})")
+                    group_lbl.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+                    group_lbl.setStyleSheet("color: #388bfd; font-weight: bold; margin-top: 6px; background: transparent;")
+                    self.cards_grid.addWidget(group_lbl, current_row, 0, 1, cols)
+                    current_row += 1
+
+                    for idx, srv in enumerate(srv_list):
+                        r = current_row + (idx // cols)
+                        c = idx % cols
+                        self.cards_grid.addWidget(self.card_widgets[srv], r, c, Qt.AlignmentFlag.AlignTop)
+                    current_row += (len(srv_list) + cols - 1) // cols
 
         elif group_mode == 1:
             groups = {"Critical / Offline": [], "Healthy Online": []}
@@ -1286,20 +1292,27 @@ class IBMiDashboard(QMainWindow):
                 else:
                     groups["Healthy Online"].append(srv)
 
-            for group_name, srv_list in groups.items():
-                if not srv_list:
-                    continue
-                group_lbl = QLabel(f"🔴 {group_name}" if "Critical" in group_name else f"🟢 {group_name}")
-                group_lbl.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
-                group_lbl.setStyleSheet("color: #388bfd; font-weight: bold; margin-top: 6px; background: transparent;")
-                self.cards_grid.addWidget(group_lbl, current_row, 0, 1, cols)
-                current_row += 1
-
-                for idx, srv in enumerate(srv_list):
-                    r = current_row + (idx // cols)
+            visible_groups = {k: v for k, v in groups.items() if v}
+            if len(visible_groups) <= 1:
+                for idx, srv in enumerate(filtered_servers):
+                    r = idx // cols
                     c = idx % cols
                     self.cards_grid.addWidget(self.card_widgets[srv], r, c, Qt.AlignmentFlag.AlignTop)
-                current_row += (len(srv_list) + cols - 1) // cols
+            else:
+                for group_name, srv_list in groups.items():
+                    if not srv_list:
+                        continue
+                    group_lbl = QLabel(f"🔴 {group_name}" if "Critical" in group_name else f"🟢 {group_name}")
+                    group_lbl.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+                    group_lbl.setStyleSheet("color: #388bfd; font-weight: bold; margin-top: 6px; background: transparent;")
+                    self.cards_grid.addWidget(group_lbl, current_row, 0, 1, cols)
+                    current_row += 1
+
+                    for idx, srv in enumerate(srv_list):
+                        r = current_row + (idx // cols)
+                        c = idx % cols
+                        self.cards_grid.addWidget(self.card_widgets[srv], r, c, Qt.AlignmentFlag.AlignTop)
+                    current_row += (len(srv_list) + cols - 1) // cols
 
         else:
             for idx, srv in enumerate(filtered_servers):

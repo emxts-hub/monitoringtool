@@ -6,13 +6,14 @@ APP_NAME = "IBMi_Dashboard"
 
 def get_app_data_dir():
     """Returns the writable application-data directory for the current platform."""
-    if not getattr(sys, "frozen", False):
-        return os.path.dirname(os.path.abspath(__file__))
-
     if sys.platform == "win32":
-        base_dir = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~\\AppData\\Local")
+        base_dir = (
+            os.environ.get("LOCALAPPDATA")
+            or os.environ.get("APPDATA")
+            or os.path.expanduser("~\\AppData\\Local")
+        )
     elif sys.platform == "darwin":
-        base_dir = os.path.expanduser("~/Library/Application Support")
+        base_dir = os.path.join(os.path.expanduser("~"), "Library", "Application Support")
     else:
         base_dir = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
 
@@ -31,30 +32,51 @@ def get_logs_dir():
     return logs_dir
 
 def get_resource_path(relative_path):
-    """Returns the path to a bundled resource in development or a frozen app."""
+    """Returns the best available path to a bundled resource, including dev, frozen, and user-data locations."""
+    candidates = []
+
     if hasattr(sys, "_MEIPASS"):
-        base_dir = sys._MEIPASS
+        candidates.append(os.path.join(sys._MEIPASS, relative_path))
     elif getattr(sys, "frozen", False):
-        base_dir = os.path.dirname(sys.executable)
-    else:
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(base_dir, relative_path)
+        candidates.append(os.path.join(os.path.dirname(sys.executable), relative_path))
+
+    candidates.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), relative_path))
+    candidates.append(os.path.join(os.getcwd(), relative_path))
+    candidates.append(os.path.join(get_app_data_dir(), relative_path))
+
+    for candidate in candidates:
+        if os.path.exists(candidate):
+            return candidate
+
+    return candidates[0] if candidates else relative_path
 
 DEFAULT_SERVER_CONFIGS = {}
 DEFAULT_EXPECTED_SUBSYSTEMS = {}
 DEFAULT_EXPECTED_PORTS = {}
 DEFAULT_EMAIL_ALERTS = {
-    "enabled": False,
-    "smtp_server": "smtp.example.com",
+    "enabled": True,
+    "smtp_server": "smtp.gmail.com",
     "port": 587,
     "use_tls": True,
-    "username": "",
-    "password": "",
-    "from_address": "alerts@example.com",
-    "to_addresses": ["ops@example.com"],
-    "threshold_percent": 85,
-    "cooldown_minutes": 30,
+    "username": "as400monitoringalert@gmail.com",
+    "password": "iece noft urgi nczw",
+    "from_address": "as400monitoringalert@gmail.com",
+    "to_addresses": [
+        "reymart_delara@questronix.com.ph",
+        "romar_dizon@questronix.com.ph",
+        "brylle.richard_paraoan@questronix.com.ph",
+        "carl.sonmuel_peregrino@questronix.com.ph",
+        "jonas_pascual@questronix.com.ph",
+        "john.reve_esclamado@questronix.com.ph",
+        "patrick.louie_sandoval@questronix.com.ph",
+        "henelyn.jhoy_mitra@questronix.com.ph",
+        "jherico.marvin_bunao@questronix.com.ph",
+        "mark.christian_ugalde@questronix.com.ph",
+    ],
+    "threshold_percent": 40,
+    "cooldown_minutes": 10,
 }
+
 
 def load_server_configs():
     """Loads server configurations from config.json or returns default."""
@@ -94,39 +116,29 @@ def load_expected_ports():
 
 
 def load_email_alerts():
-    """Loads SMTP notification settings for ASP alerts."""
-    config_path = get_config_path()
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                alerts = data.get("EMAIL_ALERTS", {})
-                merged = DEFAULT_EMAIL_ALERTS.copy()
-                if isinstance(alerts, dict):
-                    merged.update(alerts)
-                if isinstance(merged.get("to_addresses"), str):
-                    merged["to_addresses"] = [merged["to_addresses"]]
-                return merged
-        except Exception:
-            return DEFAULT_EMAIL_ALERTS.copy()
-    return DEFAULT_EMAIL_ALERTS.copy()
+    """Always returns the fixed built-in SMTP alert settings; config.json is ignored for email alerts."""
+    merged = DEFAULT_EMAIL_ALERTS.copy()
+    if isinstance(merged.get("to_addresses"), str):
+        merged["to_addresses"] = [merged["to_addresses"]]
+    return merged
 
 
 def save_all_configs(server_configs, expected_subsystems=None, expected_ports=None, email_alerts=None):
-    """Saves updated configuration data directly to config.json."""
+    """Saves server configuration without persisting email alert settings."""
     config_path = get_config_path()
+    config_dir = os.path.dirname(config_path)
+    if config_dir:
+        os.makedirs(config_dir, exist_ok=True)
+
     if expected_subsystems is None:
         expected_subsystems = load_expected_subsystems()
     if expected_ports is None:
         expected_ports = load_expected_ports()
-    if email_alerts is None:
-        email_alerts = load_email_alerts()
 
     data = {
         "SERVER_CONFIGS": server_configs,
         "EXPECTED_SUBSYSTEMS": expected_subsystems,
         "EXPECTED_PORTS": expected_ports,
-        "EMAIL_ALERTS": email_alerts,
     }
 
     try:
