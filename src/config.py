@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 APP_NAME = "IBMi_Dashboard"
 
 APP_NAME = "LPAR Manager"
-APP_VERSION = "1.1.1"
+APP_VERSION = "1.1.2"
 
 # Hardcoded cut-off date (set to December 31, 2026)
 # To disable hard expiration, set HARD_EXPIRATION_DATE = None
