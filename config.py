@@ -115,10 +115,83 @@ def load_expected_ports():
     return DEFAULT_EXPECTED_PORTS.copy()
 
 
+# Optional keyring integration for secure password storage
+try:
+    import keyring
+    _KEYRING_AVAILABLE = True
+except Exception:
+    keyring = None
+    _KEYRING_AVAILABLE = False
+
+_EMAIL_SERVICE_NAME = f"{APP_NAME}_smtp"
+
+
+def save_email_password(username, password):
+    """Store SMTP password securely in keyring when available.
+
+    Falls back to storing in config.json if keyring is not available.
+    Returns True on success, False otherwise.
+    """
+    if not username:
+        return False
+    if _KEYRING_AVAILABLE and keyring is not None:
+        try:
+            keyring.set_password(_EMAIL_SERVICE_NAME, username, password or "")
+            return True
+        except Exception:
+            return False
+
+    # Fallback: persist password into config.json (insecure) to maintain compatibility
+    try:
+        config_path = get_config_path()
+        data = {}
+        if os.path.exists(config_path):
+            with open(config_path, "r", encoding="utf-8") as f:
+                try:
+                    data = json.load(f) or {}
+                except Exception:
+                    data = {}
+        email_section = data.get("EMAIL_ALERTS", {}) if isinstance(data.get("EMAIL_ALERTS"), dict) else {}
+        email_section["password"] = password or ""
+        data["EMAIL_ALERTS"] = email_section
+        os.makedirs(os.path.dirname(config_path), exist_ok=True)
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4)
+        return True
+    except Exception:
+        return False
+
+
+def get_email_password(username):
+    """Retrieve SMTP password from keyring when available; otherwise fall back to config.json."""
+    if not username:
+        return ""
+    if _KEYRING_AVAILABLE and keyring is not None:
+        try:
+            val = keyring.get_password(_EMAIL_SERVICE_NAME, username)
+            return val or ""
+        except Exception:
+            pass
+
+    # Fallback: read from config.json
+    try:
+        config_path = get_config_path()
+        if os.path.exists(config_path):
+            with open(config_path, "r", encoding="utf-8") as f:
+                try:
+                    data = json.load(f) or {}
+                    email_section = data.get("EMAIL_ALERTS") or {}
+                    return str(email_section.get("password", "") or "")
+                except Exception:
+                    return ""
+    except Exception:
+        return ""
+
+
 def load_email_alerts():
     """Loads email alert settings from config.json if present; otherwise returns defaults.
 
-    Ensures that to_addresses is always a list and normalizes types.
+    Ensures that to_addresses is always a list and normalizes types. Password is retrieved from the keyring when possible.
     """
     config_path = get_config_path()
     merged = DEFAULT_EMAIL_ALERTS.copy()
@@ -157,6 +230,17 @@ def load_email_alerts():
     except Exception:
         merged["cooldown_minutes"] = 10
 
+    # Populate password from keyring (or fallback to any value in merged)
+    try:
+        merged_password = get_email_password(merged.get("username", ""))
+        if merged_password:
+            merged["password"] = merged_password
+        else:
+            # keep whatever was in the config if keyring empty
+            merged["password"] = merged.get("password", "")
+    except Exception:
+        merged["password"] = merged.get("password", "")
+
     return merged
 
 
@@ -188,6 +272,19 @@ def save_all_configs(server_configs, expected_subsystems=None, expected_ports=No
     if isinstance(email_alerts, dict):
         merged_email.update(email_alerts)
 
+    # If a password was supplied, try to store it securely and remove it from the JSON to avoid plaintext
+    try:
+        pwd = merged_email.pop("password", None)
+        username = merged_email.get("username", "")
+        if pwd is not None and username:
+            try:
+                save_email_password(username, pwd)
+            except Exception:
+                # best-effort; if saving fails we keep the password out of the JSON
+                pass
+    except Exception:
+        pass
+
     data = {
         "SERVER_CONFIGS": server_configs,
         "EXPECTED_SUBSYSTEMS": expected_subsystems,
@@ -200,7 +297,7 @@ def save_all_configs(server_configs, expected_subsystems=None, expected_ports=No
         if k not in data:
             data[k] = v
 
-    # Persist the email settings under EMAIL_ALERTS
+    # Persist the email settings under EMAIL_ALERTS (password intentionally omitted)
     data["EMAIL_ALERTS"] = merged_email
 
     try:

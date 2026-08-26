@@ -1,10 +1,14 @@
 import paramiko
+import re
+import smtplib
+from email.message import EmailMessage
 from PyQt6.QtCore import QThread, pyqtSignal, Qt
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel,
     QLineEdit, QPushButton, QTextEdit, QComboBox,
     QTableWidget, QTableWidgetItem, QHeaderView,
-    QApplication, QMessageBox, QGroupBox, QCheckBox
+    QApplication, QMessageBox, QGroupBox, QCheckBox,
+    QWidget, QTabWidget
 )
 import config
 from config import (
@@ -91,9 +95,7 @@ class LparSettingsDialog(QDialog):
         # Connect itemChanged to validate IP cell edits in real-time
         self.table.itemChanged.connect(self.validate_table_cell)
         
-        layout.addWidget(self.table)
-
-        # --- System: Email Sender settings ---
+        # Build tabs: LPAR Configuration and SMTP/Mail Configuration
         email_cfg = load_email_alerts()
 
         email_group = QGroupBox("System - Email Sender")
@@ -113,8 +115,8 @@ class LparSettingsDialog(QDialog):
                 self.smtp_combo.setCurrentIndex(idx)
             else:
                 self.smtp_combo.setEditText(current_server)
-        email_layout.addLayout(h_smtp)
         h_smtp.addWidget(self.smtp_combo, stretch=1)
+        email_layout.addLayout(h_smtp)
 
         # Port and TLS
         h_port = QHBoxLayout()
@@ -168,22 +170,47 @@ class LparSettingsDialog(QDialog):
         email_layout.addLayout(h_thresh)
 
         email_group.setLayout(email_layout)
-        layout.addWidget(email_group)
 
-        # Action Buttons
-        btn_layout = QHBoxLayout()
+        # LPAR tab
+        tab_widget = QTabWidget()
+        lpar_tab = QWidget()
+        lpar_layout = QVBoxLayout()
+        lpar_layout.addWidget(self.table)
+
+        lpar_btn_layout = QHBoxLayout()
         add_btn = QPushButton("+ Add LPAR")
         add_btn.clicked.connect(self.add_row)
-        
         remove_btn = QPushButton("Remove Selected")
         remove_btn.clicked.connect(self.remove_row)
+        lpar_btn_layout.addWidget(add_btn)
+        lpar_btn_layout.addWidget(remove_btn)
+        lpar_btn_layout.addStretch()
+        lpar_layout.addLayout(lpar_btn_layout)
+        lpar_tab.setLayout(lpar_layout)
+        tab_widget.addTab(lpar_tab, "LPAR Configuration")
 
+        # SMTP tab
+        smtp_tab = QWidget()
+        smtp_layout = QVBoxLayout()
+        smtp_layout.addWidget(email_group)
+
+        test_btn_layout = QHBoxLayout()
+        self.test_email_btn = QPushButton("Send Test Email")
+        self.test_email_btn.clicked.connect(self.send_test_email)
+        test_btn_layout.addStretch()
+        test_btn_layout.addWidget(self.test_email_btn)
+        smtp_layout.addLayout(test_btn_layout)
+
+        smtp_tab.setLayout(smtp_layout)
+        tab_widget.addTab(smtp_tab, "SMTP / Mail Configuration")
+
+        layout.addWidget(tab_widget)
+
+        # Action Buttons (Save only)
+        btn_layout = QHBoxLayout()
         save_btn = QPushButton("Save & Apply")
         save_btn.setObjectName("saveBtn")
         save_btn.clicked.connect(self.save_and_close)
-
-        btn_layout.addWidget(add_btn)
-        btn_layout.addWidget(remove_btn)
         btn_layout.addStretch()
         btn_layout.addWidget(save_btn)
         layout.addLayout(btn_layout)
@@ -271,6 +298,68 @@ class LparSettingsDialog(QDialog):
         current_row = self.table.currentRow()
         if current_row >= 0:
             self.table.removeRow(current_row)
+
+    def _is_valid_email(self, addr: str) -> bool:
+        if not addr:
+            return False
+        # Simple validation — sufficient for common use; can be strengthened if needed
+        return re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", addr) is not None
+
+    def send_test_email(self):
+        # Gather SMTP settings
+        smtp_server = str(self.smtp_combo.currentText()).strip()
+        try:
+            port = int(self.port_input.text().strip() or 587)
+        except Exception:
+            port = 587
+        use_tls = bool(self.tls_checkbox.isChecked())
+        username = str(self.username_input.text()).strip()
+        password = str(self.password_input.text()).strip() or config.get_email_password(username)
+        from_address = str(self.from_input.text()).strip() or username or "test@example.com"
+        to_addresses_raw = str(self.to_input.text()).strip()
+        to_addresses = [a.strip() for a in to_addresses_raw.split(",") if a.strip()]
+
+        # Validate addresses
+        if from_address and not self._is_valid_email(from_address):
+            QMessageBox.warning(self, "Invalid From Address", "Please enter a valid From email address.")
+            return
+        if not to_addresses:
+            QMessageBox.warning(self, "No Recipients", "Please specify at least one recipient in To Addresses.")
+            return
+        for a in to_addresses:
+            if not self._is_valid_email(a):
+                QMessageBox.warning(self, "Invalid Recipient", f"The recipient address '{a}' does not look valid.")
+                return
+
+        # Disable button while sending
+        self.test_email_btn.setEnabled(False)
+        try:
+            msg = EmailMessage()
+            msg["Subject"] = "[Test] IBM i Dashboard SMTP Test"
+            msg["From"] = from_address
+            msg["To"] = ", ".join(to_addresses)
+            msg.set_content("This is a test email sent from the IBM i Dashboard to validate SMTP settings.")
+
+            if use_tls:
+                smtp = smtplib.SMTP(smtp_server, port, timeout=15)
+                smtp.starttls()
+            else:
+                smtp = smtplib.SMTP(smtp_server, port, timeout=15)
+
+            try:
+                if username and password:
+                    smtp.login(username, password)
+                smtp.send_message(msg)
+                QMessageBox.information(self, "Test Email", "Test email sent successfully.")
+            finally:
+                try:
+                    smtp.quit()
+                except Exception:
+                    pass
+        except Exception as e:
+            QMessageBox.critical(self, "Test Email Failed", f"Sending test email failed: {str(e)}")
+        finally:
+            self.test_email_btn.setEnabled(True)
 
     def save_and_close(self):
         new_configs = {}
@@ -365,6 +454,18 @@ class LparSettingsDialog(QDialog):
         except Exception:
             cooldown_minutes = 10
 
+        # Basic email validation
+        if from_address and not self._is_valid_email(from_address):
+            QMessageBox.warning(self, "Invalid From Address", "Please enter a valid From email address.")
+            return
+        if not to_addresses:
+            QMessageBox.warning(self, "No Recipients", "Please specify at least one recipient in To Addresses.")
+            return
+        for a in to_addresses:
+            if not self._is_valid_email(a):
+                QMessageBox.warning(self, "Invalid Recipient", f"The recipient address '{a}' does not look valid.")
+                return
+
         email_alerts = {
             "enabled": True,
             "smtp_server": smtp_server,
@@ -378,6 +479,7 @@ class LparSettingsDialog(QDialog):
             "cooldown_minutes": cooldown_minutes,
         }
 
+        # Attempt to save — save_all_configs will securely persist password if possible
         if not save_all_configs(new_configs, new_subsystems, new_ports, email_alerts=email_alerts):
             QMessageBox.critical(self, "Save Failed", "The configuration could not be saved.")
             return
