@@ -10,7 +10,7 @@ APP_VERSION = "1.0.0"
 
 # Hardcoded cut-off date (set to December 31, 2026)
 # To disable hard expiration, set HARD_EXPIRATION_DATE = None
-HARD_EXPIRATION_DATE = datetime(2026, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+HARD_EXPIRATION_DATE = None
 
 # GitHub Pages URL serving your version metadata
 VERSION_CHECK_URL = "https://emxts-hub.github.io/monitoringtool/version.json"
