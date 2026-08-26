@@ -20,7 +20,7 @@ REPO_NAME = "AppToolAS400"
 FILE_PATH = "main.py"
 BRANCH = "main"
 
-GITHUB_TOKEN = "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" 
+GITHUB_TOKEN = "" 
 
 RAW_URL = f"https://raw.githubusercontent.com/{GITHUB_USER}/{REPO_NAME}/{BRANCH}/{FILE_PATH}"
 
