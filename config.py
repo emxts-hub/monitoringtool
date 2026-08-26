@@ -3,6 +3,8 @@ import sys
 import json
 
 APP_NAME = "IBMi_Dashboard"
+# Application semantic version (update as part of releases)
+APP_VERSION = "1.0.0"
 
 def get_app_data_dir():
     """Returns the writable application-data directory for the current platform."""
@@ -313,6 +315,29 @@ EXPECTED_PORTS = load_expected_ports()
 EMAIL_ALERTS = load_email_alerts()
 
 MONITORED_PORTS = {}
+
+# Update/expiration settings loader
+def load_update_settings():
+    """Reads update-related settings from config.json (top-level key 'UPDATE').
+
+    Expected keys in the UPDATE object (all optional):
+      - version_url: URL to a JSON file with keys 'version' and 'download_url'
+      - expiration_date: ISO date string YYYY-MM-DD after which the app should refuse to run
+    """
+    config_path = get_config_path()
+    defaults = {"version_url": "", "expiration_date": None}
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                data = json.load(f) or {}
+                upd = data.get("UPDATE") or {}
+                if isinstance(upd, dict):
+                    return {"version_url": str(upd.get("version_url", "") or "").strip(),
+                            "expiration_date": upd.get("expiration_date")}
+        except Exception:
+            return defaults
+    return defaults
+
 
 SERVICE_COMMANDS = {
     21: "STRTCPSVR SERVER(*FTP)",

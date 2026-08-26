@@ -2,6 +2,7 @@ import sys
 import os
 import ctypes
 from config import get_resource_path
+import updater
 
 # Prevent CMD window flashing without breaking C-extensions
 if sys.platform == "win32":
@@ -44,4 +45,14 @@ def main():
     sys.exit(app.exec())
 
 if __name__ == "__main__":
-    main()
+    # Perform startup checks (expiration, remote version) before launching GUI
+    try:
+        should_continue = updater.check_startup_and_update()
+    except Exception:
+        should_continue = True
+
+    if should_continue:
+        main()
+    else:
+        # updater scheduled replacement or app expired; exit now
+        sys.exit(0)
