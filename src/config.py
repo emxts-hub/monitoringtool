@@ -13,7 +13,7 @@ APP_VERSION = "1.0.0"
 HARD_EXPIRATION_DATE = datetime(2026, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
 
 # GitHub Pages URL serving your version metadata
-VERSION_CHECK_URL = "https://emxts-hub.github.io/monitoringtool/deploy/version.json"
+VERSION_CHECK_URL = "https://emxts-hub.github.io/monitoringtool/version.json"
 
 def is_build_expired() -> bool:
     """Check if local system time has exceeded the hard expiration threshold."""
