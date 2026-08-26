@@ -1,3 +1,4 @@
+#ui/main_window.py
 import sys
 import os
 import threading
@@ -84,7 +85,7 @@ class DualSparklineWidget(QWidget):
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawPolygon(QPolygonF(poly_points))
 
-    def paintEvent(self, event):
+    def paintEvent(self, a0):
         if len(self.cpu_history) < 2 and len(self.asp_history) < 2:
             return
 
@@ -362,15 +363,21 @@ class LparCardWidget(QFrame):
         self.setMinimumWidth(0)
         self.setFixedHeight(350)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.setFrameShape(QFrame.Shape.StyledPanel)
+        self.setStyleSheet("""
+            QFrame {
+                background-color: #161b22;
+                border: 1px solid #30363d;
+                border-radius: 8px;
+            }
+        """)
         
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setSpacing(2)
 
         header_layout = QHBoxLayout()
         self.name_label = QLabel(server_name)
-        self.name_label.setFont(QFont("Segoe UI", 13, QFont.Weight.Bold))
-        self.name_label.setStyleSheet("color: #ffffff; background-color: transparent;")
+        self.name_label.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
+        self.name_label.setStyleSheet("color: #ffffff; border: none; background-color: transparent;")
 
         self.uncapped_badge = QLabel("UNCAPPED")
         self.uncapped_badge.setFont(QFont("Segoe UI", 7, QFont.Weight.Bold))
@@ -383,11 +390,11 @@ class LparCardWidget(QFrame):
         self.uncapped_badge.setToolTip("Partition configured with UNCAPPED CPU attribute")
         self.uncapped_badge.hide()
 
-        self.status_badge = QLabel("OFFLINE ●")
+        self.status_badge = QLabel("ONLINE")
         self.status_badge.setFont(QFont("Segoe UI", 8, QFont.Weight.Bold))
         self.status_badge.setFixedWidth(82)
         self.status_badge.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-        self.status_badge.setStyleSheet("color: #8b949e; background-color: transparent;")
+        self.status_badge.setStyleSheet("color: #3fb950; border: none; font-weight: bold; background-color: transparent;")
 
         header_layout.addWidget(self.name_label)
         header_layout.addWidget(self.uncapped_badge)
@@ -458,8 +465,9 @@ class LparCardWidget(QFrame):
         for layout in (self.subsys_layout, self.ports_layout):
             while layout.count():
                 item = layout.takeAt(0)
-                if item is not None and item.widget():
-                    item.widget().setParent(None)
+                widget = item.widget() if item is not None else None
+                if widget is not None:
+                    widget.setParent(None)
 
     def set_theme(self, is_dark_theme):
         self.is_dark_theme = is_dark_theme
@@ -957,14 +965,17 @@ def resource_path(relative_path):
 
 
 class IBMiDashboard(QMainWindow):
-    def __init__(self):
+    def __init__(self, version_str: str = "1.0.0"):
         super().__init__()
-        self.setWindowTitle("IBM i Native Ecosystem Dashboard")
+        self.version_str = version_str
+        self.setWindowTitle(f"LPAR Manager - v{version_str}")
+        self.setGeometry(100, 100, 900, 600)
+        self.setStyleSheet("background-color: #0d1117;")
         self.setWindowIcon(QIcon(resource_path("logo.png")))
         self.resize(1750, 950)
 
         self.is_monitoring = False
-        self.is_dark_theme = False
+        self.is_dark_theme = True
         self.card_widgets = {}
         self.active_server_configs = dict(SERVER_CONFIGS)
         self.latest_results_cache = {}
@@ -1010,6 +1021,11 @@ class IBMiDashboard(QMainWindow):
         main_layout = QVBoxLayout(self.live_monitor_widget)
         main_layout.setContentsMargins(14, 14, 14, 14)
         main_layout.setSpacing(4)
+
+        header = QLabel(f"Dashboard Active (v{self.version_str})")
+        header.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
+        header.setStyleSheet("color: #c9d1d9; background-color: transparent;")
+        main_layout.addWidget(header)
 
         top_bar_layout = QHBoxLayout()
         top_bar_layout.setSpacing(10)
@@ -1102,7 +1118,7 @@ class IBMiDashboard(QMainWindow):
 
         self.cards_title = QLabel("Server Health Cards")
         self.cards_title.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
-        self.cards_title.setStyleSheet("color: #1f2328; background-color: transparent;")
+        self.cards_title.setStyleSheet("color: #c9d1d9; background-color: transparent;")
         filter_bar_layout.addWidget(self.cards_title)
 
         filter_bar_layout.addStretch()

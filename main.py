@@ -2,8 +2,11 @@ import sys
 import os
 import ctypes
 from config import get_resource_path
-import updater
+from PyQt6.QtWidgets import QApplication
+from config import APP_VERSION, is_build_expired, parse_version
+from dialogs import AppExpirationDialog
 
+from version_worker import VersionCheckWorker
 # Prevent CMD window flashing without breaking C-extensions
 if sys.platform == "win32":
     # 1. Detach console if running in a compiled binary
@@ -32,6 +35,37 @@ def resource_path(relative_path):
     return get_resource_path(relative_path)
 
 def main():
+    if is_build_expired():
+        dialog = AppExpirationDialog(
+            title="Build Expired",
+            message=f"This evaluation build of LPAR Manager (v{APP_VERSION}) has expired. Please download a newer release.",
+        )
+        dialog.exec()
+        sys.exit(0)
+
+
+
+    def handle_version_check(success, min_ver, latest_ver, download_url, err):
+        if success:
+            current_ver_tuple = parse_version(APP_VERSION)
+            min_ver_tuple = parse_version(min_ver)
+
+            # Enforce update if installed version is below required minimum
+            if current_ver_tuple < min_ver_tuple:
+                window.hide()
+                dialog = AppExpirationDialog(
+                    title="Update Required",
+                    message=f"Your version ({APP_VERSION}) is no longer supported. Minimum required version is {min_ver}.",
+                    download_url=download_url,
+                )
+                dialog.exec()
+                sys.exit(0)
+
+    worker = VersionCheckWorker()
+    worker.version_checked.connect(handle_version_check)
+    worker.start()
+
+    
     app = QApplication(sys.argv)
     app.setProperty("is_dark_theme", False)
     app.setStyleSheet(LIGHT_STYLESHEET)
@@ -45,14 +79,4 @@ def main():
     sys.exit(app.exec())
 
 if __name__ == "__main__":
-    # Perform startup checks (expiration, remote version) before launching GUI
-    try:
-        should_continue = updater.check_startup_and_update()
-    except Exception:
-        should_continue = True
-
-    if should_continue:
-        main()
-    else:
-        # updater scheduled replacement or app expired; exit now
-        sys.exit(0)
+    main()

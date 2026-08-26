@@ -1,8 +1,0 @@
-__pycache__/
-*.pyc
-*.enc
-*.key
-*.json
-*.html
-*.pkg
-.env

@@ -1,6 +1,8 @@
 import paramiko
 import re
+import sys
 import smtplib
+import webbrowser
 from email.message import EmailMessage
 from PyQt6.QtCore import QThread, pyqtSignal, Qt
 from PyQt6.QtWidgets import (
@@ -18,6 +20,98 @@ from config import (
     save_all_configs,
     load_email_alerts,
 )
+
+
+class AppExpirationDialog(QDialog):
+    def __init__(self, title: str, message: str, download_url: str = None, parent=None):
+        super().__init__(parent)
+        self.download_url = download_url
+
+        self.setWindowTitle(title)
+        self.setFixedSize(420, 220)
+        self.setWindowFlags(
+            Qt.WindowType.Dialog
+            | Qt.WindowType.CustomizeWindowHint
+            | Qt.WindowType.WindowTitleHint
+        )
+        self.setModal(True)
+
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #0d1117;
+                color: #c9d1d9;
+            }
+            QLabel {
+                font-family: 'Segoe UI', sans-serif;
+                font-size: 13px;
+                color: #f85149;
+            }
+            QPushButton {
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+        """)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+
+        self.msg_label = QLabel(message)
+        self.msg_label.setWordWrap(True)
+        self.msg_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.msg_label)
+
+        btn_layout = QHBoxLayout()
+
+        if self.download_url:
+            self.update_btn = QPushButton("Download Update")
+            self.update_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #238636;
+                    color: #ffffff;
+                    border: 1px solid #2ea043;
+                }
+                QPushButton:hover {
+                    background-color: #2ea043;
+                }
+            """)
+            self.update_btn.clicked.connect(self._open_download_page)
+            btn_layout.addWidget(self.update_btn)
+
+        self.exit_btn = QPushButton("Exit")
+        self.exit_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #21262d;
+                color: #c9d1d9;
+                border: 1px solid #30363d;
+            }
+            QPushButton:hover {
+                background-color: #30363d;
+            }
+        """)
+        self.exit_btn.clicked.connect(self._exit_application)
+        btn_layout.addWidget(self.exit_btn)
+
+        layout.addLayout(btn_layout)
+
+    def _open_download_page(self):
+        if self.download_url:
+            webbrowser.open(self.download_url)
+        sys.exit(0)
+
+    def _exit_application(self):
+        sys.exit(0)
+
+    def reject(self):
+        """Prevent escaping out of the mandatory modal via ESC key."""
+        pass
+
+
+
+
+
 
 
 class LparSettingsDialog(QDialog):
@@ -71,8 +165,8 @@ class LparSettingsDialog(QDialog):
 
         layout = QVBoxLayout(self)
 
-        lbl = QLabel("Manage Server Connections, Expected Subsystems & Monitored Ports:")
-        layout.addWidget(lbl)
+        #lbl = QLabel("Manage Server Connections, Expected Subsystems & Monitored Ports:")
+        #layout.addWidget(lbl)
 
         # Table View: Server Name, IP / Host, Database Name, Expected Subsystems, Expected Ports
         self.table = QTableWidget()

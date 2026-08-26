@@ -1,10 +1,36 @@
 import os
 import sys
 import json
+from datetime import datetime, timezone
 
 APP_NAME = "IBMi_Dashboard"
-# Application semantic version (update as part of releases)
+
+APP_NAME = "LPAR Manager"
 APP_VERSION = "1.0.0"
+
+# Hardcoded cut-off date (set to December 31, 2026)
+# To disable hard expiration, set HARD_EXPIRATION_DATE = None
+HARD_EXPIRATION_DATE = datetime(2026, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+
+# GitHub Pages URL serving your version metadata
+VERSION_CHECK_URL = "https://YOUR_USERNAME.github.io/YOUR_REPO/version.json"
+
+def is_build_expired() -> bool:
+    """Check if local system time has exceeded the hard expiration threshold."""
+    if HARD_EXPIRATION_DATE is None:
+        return False
+    now = datetime.now(timezone.utc)
+    return now > HARD_EXPIRATION_DATE
+
+
+def parse_version(ver_str: str) -> tuple:
+    """Convert semver string ('1.0.0') to integer tuple (1, 0, 0) for comparison."""
+    try:
+        clean_str = ver_str.split("-")[0].strip()
+        return tuple(map(int, clean_str.split(".")))
+    except (ValueError, AttributeError):
+        return (0, 0, 0)
+
 
 def get_app_data_dir():
     """Returns the writable application-data directory for the current platform."""
@@ -315,29 +341,6 @@ EXPECTED_PORTS = load_expected_ports()
 EMAIL_ALERTS = load_email_alerts()
 
 MONITORED_PORTS = {}
-
-# Update/expiration settings loader
-def load_update_settings():
-    """Reads update-related settings from config.json (top-level key 'UPDATE').
-
-    Expected keys in the UPDATE object (all optional):
-      - version_url: URL to a JSON file with keys 'version' and 'download_url'
-      - expiration_date: ISO date string YYYY-MM-DD after which the app should refuse to run
-    """
-    config_path = get_config_path()
-    defaults = {"version_url": "", "expiration_date": None}
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r", encoding="utf-8") as f:
-                data = json.load(f) or {}
-                upd = data.get("UPDATE") or {}
-                if isinstance(upd, dict):
-                    return {"version_url": str(upd.get("version_url", "") or "").strip(),
-                            "expiration_date": upd.get("expiration_date")}
-        except Exception:
-            return defaults
-    return defaults
-
 
 SERVICE_COMMANDS = {
     21: "STRTCPSVR SERVER(*FTP)",

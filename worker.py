@@ -143,7 +143,7 @@ def send_asp_alert(server_name, asp_value, threshold_percent):
 
     try:
         msg = EmailMessage()
-        msg["Subject"] = f"[THIS IS TEST MAIL PLEASE DISREGARD] ASP Threshold Alert - {server_name}"
+        msg["Subject"] = f"ASP Threshold Alert - {server_name}"
         msg["From"] = from_address
         msg["To"] = ", ".join(recipients)
         msg.set_content(
@@ -172,7 +172,7 @@ def maybe_send_asp_alert(server_name, asp_value):
     except (TypeError, ValueError):
         asp_value = 0.0
 
-    threshold_percent = float(alert_cfg.get("threshold_percent", 40.0) or 40.0)
+    threshold_percent = float(alert_cfg.get("threshold_percent", 90.0) or 90.0)
     cooldown_seconds = max(0, int(float(alert_cfg.get("cooldown_minutes", 10) or 10) * 60))
 
     with _ALERT_STATE_LOCK:
