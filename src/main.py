@@ -5,6 +5,7 @@ from config import get_resource_path
 from PyQt6.QtWidgets import QApplication
 from config import APP_VERSION, is_build_expired, parse_version
 from dialogs import AppExpirationDialog
+import ui.main_window
 
 from version_worker import VersionCheckWorker
 # Prevent CMD window flashing without breaking C-extensions
@@ -22,7 +23,6 @@ if sys.platform == "win32":
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtGui import QIcon
 from ui.styles import LIGHT_STYLESHEET
-import ui.main_window
 
 # Force Windows Taskbar to pin/show custom app icon
 myappid = 'ibmi.dashboard.ecosystem.1'
