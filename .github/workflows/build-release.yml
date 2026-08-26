@@ -27,7 +27,7 @@ jobs:
 
       - name: Build Executable with PyInstaller
         run: |
-          pyinstaller --noconsole --onefile --name WinMacOS --icon=logo.ico main.py
+          pyinstaller --noconsole --onefile --name WinMacOS --paths=src --icon=src/logo.ico src/main.py
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
