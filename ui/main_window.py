@@ -1046,7 +1046,7 @@ class IBMiDashboard(QMainWindow):
         self.toggle_btn.clicked.connect(self.toggle_monitoring)
         cred_layout.addWidget(self.toggle_btn)
 
-        self.settings_btn = QPushButton("⚙️ Edit Connections")
+        self.settings_btn = QPushButton("⚙️ Settings")
         self.settings_btn.setFont(QFont("Segoe UI", 8, QFont.Weight.Bold))
         self.settings_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.settings_btn.setStyleSheet("""
@@ -1446,7 +1446,7 @@ class IBMiDashboard(QMainWindow):
         servers = sorted(self.active_server_configs.keys())
 
         if not servers:
-            empty_lbl = QLabel("No LPAR connections found. Click '⚙️ Edit Connections' to configure servers.")
+            empty_lbl = QLabel("No LPAR connections found. Click '⚙️ Settings' to configure servers.")
             empty_lbl.setFont(QFont("Segoe UI", 11))
             empty_lbl.setStyleSheet("color: #8b949e; margin: 20px; background-color: transparent;")
             self.cards_grid.addWidget(empty_lbl, 0, 0)

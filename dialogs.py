@@ -1,16 +1,18 @@
 import paramiko
 from PyQt6.QtCore import QThread, pyqtSignal, Qt
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel,
     QLineEdit, QPushButton, QTextEdit, QComboBox,
     QTableWidget, QTableWidgetItem, QHeaderView,
-    QApplication, QMessageBox
+    QApplication, QMessageBox, QGroupBox, QCheckBox
 )
+import config
 from config import (
-    SERVER_CONFIGS, 
-    EXPECTED_SUBSYSTEMS, 
-    EXPECTED_PORTS, 
-    save_all_configs
+    SERVER_CONFIGS,
+    EXPECTED_SUBSYSTEMS,
+    EXPECTED_PORTS,
+    save_all_configs,
+    load_email_alerts,
 )
 
 
@@ -90,6 +92,83 @@ class LparSettingsDialog(QDialog):
         self.table.itemChanged.connect(self.validate_table_cell)
         
         layout.addWidget(self.table)
+
+        # --- System: Email Sender settings ---
+        email_cfg = load_email_alerts()
+
+        email_group = QGroupBox("System - Email Sender")
+        email_layout = QVBoxLayout()
+
+        # SMTP Server (choices)
+        h_smtp = QHBoxLayout()
+        h_smtp.addWidget(QLabel("SMTP Server:"))
+        self.smtp_combo = QComboBox()
+        self.smtp_combo.setEditable(True)
+        self.smtp_combo.addItems(["smtp.office365.com", "smtp.gmail.com"])
+        # set current
+        current_server = str(email_cfg.get("smtp_server", "")).strip()
+        if current_server:
+            idx = self.smtp_combo.findText(current_server)
+            if idx >= 0:
+                self.smtp_combo.setCurrentIndex(idx)
+            else:
+                self.smtp_combo.setEditText(current_server)
+        email_layout.addLayout(h_smtp)
+        h_smtp.addWidget(self.smtp_combo, stretch=1)
+
+        # Port and TLS
+        h_port = QHBoxLayout()
+        h_port.addWidget(QLabel("Port:"))
+        self.port_input = QLineEdit(str(email_cfg.get("port", 587)))
+        self.port_input.setMaximumWidth(80)
+        h_port.addWidget(self.port_input)
+        h_port.addWidget(QLabel("Use TLS:"))
+        self.tls_checkbox = QCheckBox()
+        self.tls_checkbox.setChecked(bool(email_cfg.get("use_tls", True)))
+        h_port.addWidget(self.tls_checkbox)
+        h_port.addStretch()
+        email_layout.addLayout(h_port)
+
+        # Username / Password
+        h_auth = QHBoxLayout()
+        h_auth.addWidget(QLabel("Username:"))
+        self.username_input = QLineEdit(str(email_cfg.get("username", "")))
+        h_auth.addWidget(self.username_input)
+        h_auth.addWidget(QLabel("Password:"))
+        self.password_input = QLineEdit(str(email_cfg.get("password", "")))
+        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
+        h_auth.addWidget(self.password_input)
+        email_layout.addLayout(h_auth)
+
+        # From address
+        h_from = QHBoxLayout()
+        h_from.addWidget(QLabel("From Address:"))
+        self.from_input = QLineEdit(str(email_cfg.get("from_address", "")))
+        h_from.addWidget(self.from_input)
+        email_layout.addLayout(h_from)
+
+        # To addresses
+        h_to = QHBoxLayout()
+        h_to.addWidget(QLabel("To Addresses (comma-separated):"))
+        self.to_input = QLineEdit(", ".join(email_cfg.get("to_addresses", [])))
+        h_to.addWidget(self.to_input)
+        email_layout.addLayout(h_to)
+
+        # Threshold and cooldown
+        h_thresh = QHBoxLayout()
+        h_thresh.addWidget(QLabel("Threshold %:"))
+        self.threshold_input = QLineEdit(str(email_cfg.get("threshold_percent", 40)))
+        self.threshold_input.setMaximumWidth(80)
+        h_thresh.addWidget(self.threshold_input)
+        h_thresh.addWidget(QLabel("Cooldown minutes:"))
+        self.cooldown_input = QLineEdit(str(email_cfg.get("cooldown_minutes", 10)))
+        self.cooldown_input.setMaximumWidth(80)
+        h_thresh.addWidget(self.cooldown_input)
+        h_thresh.addStretch()
+        email_layout.addLayout(h_thresh)
+
+        email_group.setLayout(email_layout)
+        layout.addWidget(email_group)
 
         # Action Buttons
         btn_layout = QHBoxLayout()
@@ -261,10 +340,49 @@ class LparSettingsDialog(QDialog):
                 new_subsystems[srv_name] = parsed_subsystems
                 new_ports[srv_name] = parsed_ports
 
-        if not save_all_configs(new_configs, new_subsystems, new_ports):
+        # Collect email/system settings from the dialog
+        try:
+            smtp_server = str(self.smtp_combo.currentText()).strip()
+            port = int(self.port_input.text().strip() or 587)
+            use_tls = bool(self.tls_checkbox.isChecked())
+        except Exception:
+            smtp_server = str(self.smtp_combo.currentText()).strip()
+            port = 587
+            use_tls = True
+
+        username = str(self.username_input.text()).strip()
+        password = str(self.password_input.text()).strip()
+        from_address = str(self.from_input.text()).strip() or username or ""
+        to_addresses_raw = str(self.to_input.text()).strip()
+        to_addresses = [a.strip() for a in to_addresses_raw.split(",") if a.strip()]
+
+        try:
+            threshold_percent = float(self.threshold_input.text().strip() or 40.0)
+        except Exception:
+            threshold_percent = 40.0
+        try:
+            cooldown_minutes = int(self.cooldown_input.text().strip() or 10)
+        except Exception:
+            cooldown_minutes = 10
+
+        email_alerts = {
+            "enabled": True,
+            "smtp_server": smtp_server,
+            "port": port,
+            "use_tls": use_tls,
+            "username": username,
+            "password": password,
+            "from_address": from_address,
+            "to_addresses": to_addresses,
+            "threshold_percent": threshold_percent,
+            "cooldown_minutes": cooldown_minutes,
+        }
+
+        if not save_all_configs(new_configs, new_subsystems, new_ports, email_alerts=email_alerts):
             QMessageBox.critical(self, "Save Failed", "The configuration could not be saved.")
             return
 
+        # Update in-memory globals
         self.configs = new_configs
         SERVER_CONFIGS.clear()
         SERVER_CONFIGS.update(new_configs)
@@ -274,6 +392,12 @@ class LparSettingsDialog(QDialog):
 
         EXPECTED_PORTS.clear()
         EXPECTED_PORTS.update(new_ports)
+
+        # Update config module's EMAIL_ALERTS so runtime code picks up changes
+        try:
+            config.EMAIL_ALERTS = email_alerts
+        except Exception:
+            pass
 
         self.accept()
 

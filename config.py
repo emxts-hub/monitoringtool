@@ -116,15 +116,55 @@ def load_expected_ports():
 
 
 def load_email_alerts():
-    """Always returns the fixed built-in SMTP alert settings; config.json is ignored for email alerts."""
+    """Loads email alert settings from config.json if present; otherwise returns defaults.
+
+    Ensures that to_addresses is always a list and normalizes types.
+    """
+    config_path = get_config_path()
     merged = DEFAULT_EMAIL_ALERTS.copy()
+    # Try reading from user config first
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                user_email = data.get("EMAIL_ALERTS")
+                if isinstance(user_email, dict):
+                    merged.update(user_email)
+        except Exception:
+            # If config is malformed, fall back to defaults
+            pass
+
+    # Normalize to_addresses to a list
     if isinstance(merged.get("to_addresses"), str):
-        merged["to_addresses"] = [merged["to_addresses"]]
+        merged["to_addresses"] = [addr.strip() for addr in merged["to_addresses"].split(",") if addr.strip()]
+    elif not isinstance(merged.get("to_addresses"), (list, tuple)):
+        merged["to_addresses"] = []
+
+    # Ensure numeric fields are correct types
+    try:
+        merged["port"] = int(merged.get("port", 587) or 587)
+    except Exception:
+        merged["port"] = 587
+
+    merged["enabled"] = bool(merged.get("enabled", True))
+    merged["use_tls"] = bool(merged.get("use_tls", True))
+    try:
+        merged["threshold_percent"] = float(merged.get("threshold_percent", 40.0) or 40.0)
+    except Exception:
+        merged["threshold_percent"] = 40.0
+    try:
+        merged["cooldown_minutes"] = int(merged.get("cooldown_minutes", 10) or 10)
+    except Exception:
+        merged["cooldown_minutes"] = 10
+
     return merged
 
 
 def save_all_configs(server_configs, expected_subsystems=None, expected_ports=None, email_alerts=None):
-    """Saves server configuration without persisting email alert settings."""
+    """Saves server configuration and system/email settings into the persistent config.json.
+
+    If email_alerts is None the currently persisted or default email settings are preserved.
+    """
     config_path = get_config_path()
     config_dir = os.path.dirname(config_path)
     if config_dir:
@@ -135,11 +175,33 @@ def save_all_configs(server_configs, expected_subsystems=None, expected_ports=No
     if expected_ports is None:
         expected_ports = load_expected_ports()
 
+    # Load existing data to preserve unrelated keys
+    existing = {}
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                existing = json.load(f) or {}
+        except Exception:
+            existing = {}
+
+    merged_email = load_email_alerts()
+    if isinstance(email_alerts, dict):
+        merged_email.update(email_alerts)
+
     data = {
         "SERVER_CONFIGS": server_configs,
         "EXPECTED_SUBSYSTEMS": expected_subsystems,
         "EXPECTED_PORTS": expected_ports,
+        # include other existing keys except those we overwrite
     }
+
+    # Preserve any other top-level keys from previous config
+    for k, v in existing.items():
+        if k not in data:
+            data[k] = v
+
+    # Persist the email settings under EMAIL_ALERTS
+    data["EMAIL_ALERTS"] = merged_email
 
     try:
         with open(config_path, "w", encoding="utf-8") as f:
