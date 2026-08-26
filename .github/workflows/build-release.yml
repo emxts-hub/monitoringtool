@@ -29,9 +29,15 @@ jobs:
         run: |
           pyinstaller --noconsole --onefile --name WinMacOS --paths=src --icon=src/logo.ico src/main.py
 
+      - name: Compress Executable into ZIP
+        run: |
+          Compress-Archive -Path dist/WinMacOS.exe -DestinationPath dist/WinMacOS.zip
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/WinMacOS.exe
+          files: |
+            dist/WinMacOS.zip
+            dist/WinMacOS.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
