@@ -632,6 +632,12 @@ class LparCardWidget(QFrame):
         self.ports_layout.addWidget(badges_widget)
 
     def update_data(self, data):
+        display_name = str(data.get("host_name") or data.get("server") or self.server_name).strip()
+        if display_name and display_name != self.server_name:
+            self.server_name = display_name
+            if hasattr(self, "name_label"):
+                self.name_label.setText(display_name)
+
         status = str(data.get("status", "OFFLINE")).upper()
         error_reason = str(data.get("error") or "")
         cpu = float(data.get("cpu", 0.0))
@@ -1217,7 +1223,7 @@ class IBMiDashboard(QMainWindow):
 
         filtered_servers = []
         for srv, card in self.card_widgets.items():
-            if query and query not in srv.lower():
+            if query and query not in srv.lower() and query not in card.server_name.lower():
                 continue
 
             if status_filter == 1 and not card.current_is_critical:
@@ -1523,6 +1529,7 @@ class IBMiDashboard(QMainWindow):
             self._refresh_queued = True
             return
 
+        self.log_viewer_widget.active_lpars = []
         self._refresh_in_progress = True
         self.timer.stop()
         self.last_refresh_started_at = time.monotonic()
@@ -1566,16 +1573,24 @@ class IBMiDashboard(QMainWindow):
         if not self.is_monitoring or generation != self.refresh_generation:
             return
 
-        server_name = lpar_data["server"]
-        self.latest_results_cache[server_name] = lpar_data
-        self._register_server_result(server_name, lpar_data)
+        config_key = lpar_data.get("config_key") or lpar_data.get("server") or runnable.server
+        server_name = lpar_data.get("server") or config_key
+        self.latest_results_cache[config_key] = lpar_data
+        self._register_server_result(config_key, lpar_data)
         self.completed_threads_count += 1
 
-        if server_name in self.card_widgets:
-            card = self.card_widgets[server_name]
-            card.retry_count = self.server_retry_counts.get(server_name, 0)
-            card.last_error_reason = self.server_error_reasons.get(server_name, str(lpar_data.get("error") or ""))
-            card.sync_duration_ms = int(self.server_sync_durations_ms.get(server_name, 0))
+        live_server_names = {
+            str(data.get("server") or key): {}
+            for key, data in self.latest_results_cache.items()
+        }
+        if live_server_names:
+            self.log_viewer_widget.load_log_history(live_server_names)
+
+        if config_key in self.card_widgets:
+            card = self.card_widgets[config_key]
+            card.retry_count = self.server_retry_counts.get(config_key, 0)
+            card.last_error_reason = self.server_error_reasons.get(config_key, str(lpar_data.get("error") or ""))
+            card.sync_duration_ms = int(self.server_sync_durations_ms.get(config_key, 0))
             if str(lpar_data.get("status", "OFFLINE")).upper() in ("ONLINE", "DEGRADED"):
                 card.last_success_ts = time.strftime("%H:%M:%S")
             card.update_data(lpar_data)

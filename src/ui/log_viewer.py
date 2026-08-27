@@ -590,8 +590,9 @@ class LogViewerWidget(QWidget):
         if active_server_configs is not None:
             self.active_lpars = sorted(list(active_server_configs.keys()))
         elif not self.active_lpars:
-            from config import SERVER_CONFIGS
-            self.active_lpars = sorted(list(SERVER_CONFIGS.keys()))
+            self.active_lpars = []
+            self._update_last_refresh_timestamp()
+            return
 
         active_signature = tuple(self.active_lpars)
         scan_signature = self._compute_log_scan_signature()

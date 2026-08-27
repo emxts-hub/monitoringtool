@@ -285,9 +285,11 @@ def save_single_lpar_log(sys_info, server_configs=None):
                     down_services.append(name)
 
     services_down_val = down_services if down_services else "None"
-    server_name = sys_info.get("server")
-    
-    cfg = configs.get(server_name, {})
+    server_name = sys_info.get("server") or sys_info.get("host_name") or sys_info.get("config_key")
+    if sys_info.get("host_name") and server_name == sys_info.get("config_key"):
+        server_name = sys_info.get("host_name")
+
+    cfg = configs.get(server_name, configs.get(sys_info.get("config_key"), {}))
     ip_addr = cfg.get("host", "N/A") if isinstance(cfg, dict) else str(cfg)
 
     record = {
@@ -382,6 +384,8 @@ class SingleLparRunnable(QRunnable):
         if not ping_ip(host):
             result = {
                 "server": self.server,
+                "host_name": self.server,
+                "config_key": self.server,
                 "status": "OFFLINE",
                 "error": f"[{self.server}] Host {host} is unreachable / VPN disconnected.",
                 "cpu": 0.0,
@@ -413,6 +417,25 @@ class SingleLparRunnable(QRunnable):
 
             if self.check_cancelled():
                 return
+
+            system_name = self.server
+            try:
+                for query in (
+                    "SELECT HOST_NAME FROM TABLE(QSYS2.SYSTEM_STATUS(RESET_STATISTICS => 'YES'))",
+                    "SELECT HOST_NAME FROM TABLE(QSYS2.SYSTEM_STATUS_INFO)",
+                ):
+                    try:
+                        cursor.execute(query)
+                        row = cursor.fetchone()
+                        if row and row[0] is not None:
+                            resolved_name = str(row[0]).strip()
+                            if resolved_name:
+                                system_name = resolved_name
+                                break
+                    except Exception:
+                        continue
+            except Exception:
+                pass
 
             active_jobs = 0
             asp_used = 0.0
@@ -525,7 +548,9 @@ class SingleLparRunnable(QRunnable):
                 metric_errors.append(f"ports: {e}")
 
             result = {
-                "server": self.server,
+                "server": system_name,
+                "host_name": system_name,
+                "config_key": self.server,
                 "status": "DEGRADED" if metric_errors else "ONLINE",
                 "cpu": cpu_util,
                 "asp": asp_used,
@@ -541,6 +566,8 @@ class SingleLparRunnable(QRunnable):
             if any(k in err_msg.lower() for k in ["28000", "cwbsy0011", "disabled", "password", "authentication"]):
                 result = {
                     "server": self.server,
+                    "host_name": self.server,
+                    "config_key": self.server,
                     "status": "AUTH_ERROR",
                     "error": f"[{self.server}] {err_msg}",
                     "cpu": 0.0,
@@ -552,6 +579,8 @@ class SingleLparRunnable(QRunnable):
             else:
                 result = {
                     "server": self.server,
+                    "host_name": self.server,
+                    "config_key": self.server,
                     "status": "OFFLINE",
                     "error": f"[{self.server}] {err_msg}",
                     "cpu": 0.0,
@@ -570,7 +599,7 @@ class SingleLparRunnable(QRunnable):
         if not self.is_cancelled():
             result["sync_duration_ms"] = max(0, int((time.monotonic() - started_at) * 1000))
             try:
-                maybe_send_asp_alert(self.server, float(result.get("asp", 0.0) or 0.0))
+                maybe_send_asp_alert(str(result.get("server") or self.server), float(result.get("asp", 0.0) or 0.0))
             except Exception:
                 pass
             save_single_lpar_log(result)

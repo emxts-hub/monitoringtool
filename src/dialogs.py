@@ -171,19 +171,18 @@ class LparSettingsDialog(QDialog):
         #lbl = QLabel("Manage Server Connections, Expected Subsystems & Monitored Ports:")
         #layout.addWidget(lbl)
 
-        # Table View: Server Name, IP / Host, Database Name, Expected Subsystems, Expected Ports
+        # Table View: IP / Hostname, Database Name, Expected Subsystems, Expected Ports
         self.table = QTableWidget()
-        self.table.setColumnCount(5)
+        self.table.setColumnCount(4)
         self.table.setHorizontalHeaderLabels([
-            "Server Name", "IP / Hostname", "Database Name", "Expected Subsystems", "Monitored Ports (Port:Name)"
+            "IP / Hostname", "Database Name", "Expected Subsystems", "Monitored Ports (Port:Name)"
         ])
         
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Interactive)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
         
         self.table.verticalHeader().setVisible(False)
         
@@ -331,16 +330,15 @@ class LparSettingsDialog(QDialog):
                     ports_str_items.append(str(p))
             ports_str = ", ".join(ports_str_items)
 
-            self.table.setItem(row, 0, QTableWidgetItem(srv_name))
-            self.table.setItem(row, 1, QTableWidgetItem(host))
-            self.table.setItem(row, 2, QTableWidgetItem(db))
-            self.table.setItem(row, 3, QTableWidgetItem(subsystems_str))
-            self.table.setItem(row, 4, QTableWidgetItem(ports_str))
+            self.table.setItem(row, 0, QTableWidgetItem(host))
+            self.table.setItem(row, 1, QTableWidgetItem(db))
+            self.table.setItem(row, 2, QTableWidgetItem(subsystems_str))
+            self.table.setItem(row, 3, QTableWidgetItem(ports_str))
         self.table.blockSignals(False)
 
     def validate_table_cell(self, item):
         """Validates IP/Hostname cell edits to prevent duplicate IP addresses."""
-        if item.column() != 1:
+        if item.column() != 0:
             return
 
         current_row = item.row()
@@ -354,7 +352,7 @@ class LparSettingsDialog(QDialog):
             if row == current_row:
                 continue
 
-            other_item = self.table.item(row, 1)
+            other_item = self.table.item(row, 0)
             if other_item and other_item.text().strip().lower() == entered_ip.lower():
                 QMessageBox.warning(
                     self,
@@ -384,11 +382,10 @@ class LparSettingsDialog(QDialog):
 
         self.table.blockSignals(True)
         self.table.insertRow(row)
-        self.table.setItem(row, 0, QTableWidgetItem(f"LPAR0{row + 1}"))
-        self.table.setItem(row, 1, QTableWidgetItem(candidate_ip))
-        self.table.setItem(row, 2, QTableWidgetItem("*LOCAL"))
-        self.table.setItem(row, 3, QTableWidgetItem("QINTER, QBATCH, QSERVER, QSYSWRK"))
-        self.table.setItem(row, 4, QTableWidgetItem("21:FTP, 22:SSH, 8471:DDM"))
+        self.table.setItem(row, 0, QTableWidgetItem(candidate_ip))
+        self.table.setItem(row, 1, QTableWidgetItem("*LOCAL"))
+        self.table.setItem(row, 2, QTableWidgetItem("QINTER, QBATCH, QSERVER, QSYSWRK"))
+        self.table.setItem(row, 3, QTableWidgetItem("21:FTP, 22:SSH, 8471:DDM"))
         self.table.blockSignals(False)
 
     def remove_row(self):
@@ -466,33 +463,28 @@ class LparSettingsDialog(QDialog):
 
         # Pre-save validation for duplicate IPs
         for row in range(self.table.rowCount()):
-            host_item = self.table.item(row, 1)
-            srv_item = self.table.item(row, 0)
-            
+            host_item = self.table.item(row, 0)
             if host_item and host_item.text().strip():
                 ip_str = host_item.text().strip().lower()
-                srv_str = srv_item.text().strip().upper() if srv_item else f"Row {row + 1}"
-                
                 if ip_str in seen_ips:
                     QMessageBox.warning(
                         self,
                         "Duplicate IP Error",
-                        f"Duplicate IP / Hostname '{host_item.text().strip()}' found for server '{srv_str}' and '{seen_ips[ip_str]}'.\n\nEach LPAR must have a unique IP address.",
+                        f"Duplicate IP / Hostname '{host_item.text().strip()}' found for row {seen_ips[ip_str]} and row {row + 1}.\n\nEach LPAR must have a unique IP address.",
                         QMessageBox.StandardButton.Ok
                     )
                     return
-                seen_ips[ip_str] = srv_str
+                seen_ips[ip_str] = row + 1
 
         for row in range(self.table.rowCount()):
-            srv_item = self.table.item(row, 0)
-            host_item = self.table.item(row, 1)
-            db_item = self.table.item(row, 2)
-            sub_item = self.table.item(row, 3)
-            port_item = self.table.item(row, 4)
+            host_item = self.table.item(row, 0)
+            db_item = self.table.item(row, 1)
+            sub_item = self.table.item(row, 2)
+            port_item = self.table.item(row, 3)
 
-            if srv_item and host_item and srv_item.text().strip():
-                srv_name = srv_item.text().strip().upper()
+            if host_item and host_item.text().strip():
                 host_val = host_item.text().strip()
+                srv_name = host_val.upper()
                 db_val = db_item.text().strip() if db_item and db_item.text().strip() else "*LOCAL"
 
                 # Parse Subsystems

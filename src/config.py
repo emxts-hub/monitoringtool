@@ -6,9 +6,16 @@ from datetime import datetime, timezone
 APP_NAME = "IBMi_Dashboard"
 APP_VERSION = "1.2.0"
 
-# Hardcoded cut-off date (set to December 31, 2026)
-# To disable hard expiration, set HARD_EXPIRATION_DATE = None
-HARD_EXPIRATION_DATE = datetime(2026, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+# By default, disable the hard expiration gate. Set this explicitly only when
+# you intentionally want to enforce a release cutoff for a specific build.
+# Accepts an ISO-8601 datetime string from an environment variable as an override.
+HARD_EXPIRATION_DATE = None
+_expiration_env = os.getenv("APP_HARD_EXPIRATION_DATE")
+if _expiration_env:
+    try:
+        HARD_EXPIRATION_DATE = datetime.fromisoformat(_expiration_env.replace("Z", "+00:00"))
+    except ValueError:
+        HARD_EXPIRATION_DATE = None
 
 # GitHub Pages URL serving your version metadata
 VERSION_CHECK_URL = "https://emxts-hub.github.io/monitoringtool/version.json"
@@ -79,25 +86,14 @@ DEFAULT_SERVER_CONFIGS = {}
 DEFAULT_EXPECTED_SUBSYSTEMS = {}
 DEFAULT_EXPECTED_PORTS = {}
 DEFAULT_EMAIL_ALERTS = {
-    "enabled": True,
-    "smtp_server": "smtp.gmail.com",
+    "enabled": False,
+    "smtp_server": "",
     "port": 587,
     "use_tls": True,
-    "username": "as400monitoringalert@gmail.com",
-    "password": "iece noft urgi nczw",
-    "from_address": "as400monitoringalert@gmail.com",
-    "to_addresses": [
-        "reymart_delara@questronix.com.ph",
-        "romar_dizon@questronix.com.ph",
-        "brylle.richard_paraoan@questronix.com.ph",
-        "carl.sonmuel_peregrino@questronix.com.ph",
-        "jonas_pascual@questronix.com.ph",
-        "john.reve_esclamado@questronix.com.ph",
-        "patrick.louie_sandoval@questronix.com.ph",
-        "henelyn.jhoy_mitra@questronix.com.ph",
-        "jherico.marvin_bunao@questronix.com.ph",
-        "mark.christian_ugalde@questronix.com.ph",
-    ],
+    "username": "",
+    "password": "",
+    "from_address": "",
+    "to_addresses": [],
     "threshold_percent": 40,
     "cooldown_minutes": 10,
 }
@@ -152,10 +148,10 @@ _EMAIL_SERVICE_NAME = f"{APP_NAME}_smtp"
 
 
 def save_email_password(username, password):
-    """Store SMTP password securely in keyring when available.
+    """Store SMTP password securely in the OS keyring when available.
 
-    Falls back to storing in config.json if keyring is not available.
-    Returns True on success, False otherwise.
+    We intentionally do not persist SMTP secrets into config.json because that
+    would store plaintext credentials on disk.
     """
     if not username:
         return False
@@ -165,32 +161,21 @@ def save_email_password(username, password):
             return True
         except Exception:
             return False
-
-    # Fallback: persist password into config.json (insecure) to maintain compatibility
-    try:
-        config_path = get_config_path()
-        data = {}
-        if os.path.exists(config_path):
-            with open(config_path, "r", encoding="utf-8") as f:
-                try:
-                    data = json.load(f) or {}
-                except Exception:
-                    data = {}
-        email_section = data.get("EMAIL_ALERTS", {}) if isinstance(data.get("EMAIL_ALERTS"), dict) else {}
-        email_section["password"] = password or ""
-        data["EMAIL_ALERTS"] = email_section
-        os.makedirs(os.path.dirname(config_path), exist_ok=True)
-        with open(config_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4)
-        return True
-    except Exception:
-        return False
+    return False
 
 
 def get_email_password(username):
-    """Retrieve SMTP password from keyring when available; otherwise fall back to config.json."""
+    """Retrieve SMTP password from keyring. Environment variables are also accepted.
+
+    Secrets are never loaded from config.json to avoid plaintext storage.
+    """
     if not username:
         return ""
+
+    env_password = os.getenv("SMTP_PASSWORD") or os.getenv("APP_SMTP_PASSWORD")
+    if env_password is not None:
+        return str(env_password)
+
     if _KEYRING_AVAILABLE and keyring is not None:
         try:
             val = keyring.get_password(_EMAIL_SERVICE_NAME, username)
@@ -198,29 +183,33 @@ def get_email_password(username):
         except Exception:
             pass
 
-    # Fallback: read from config.json
-    try:
-        config_path = get_config_path()
-        if os.path.exists(config_path):
-            with open(config_path, "r", encoding="utf-8") as f:
-                try:
-                    data = json.load(f) or {}
-                    email_section = data.get("EMAIL_ALERTS") or {}
-                    return str(email_section.get("password", "") or "")
-                except Exception:
-                    return ""
-    except Exception:
-        return ""
+    return ""
+
+
+def _coerce_to_list(value):
+    if isinstance(value, str):
+        return [item.strip() for item in value.split(",") if item.strip()]
+    if isinstance(value, (list, tuple, set)):
+        return [str(item).strip() for item in value if str(item).strip()]
+    return []
+
+
+def _env_bool(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return str(value).strip().lower() not in {"0", "false", "no", "off", ""}
 
 
 def load_email_alerts():
     """Loads email alert settings from config.json if present; otherwise returns defaults.
 
-    Ensures that to_addresses is always a list and normalizes types. Password is retrieved from the keyring when possible.
+    Environment variables override the file values for runtime configuration and
+    credentials are read from keyring or the process environment rather than from
+    a plaintext JSON file.
     """
     config_path = get_config_path()
     merged = DEFAULT_EMAIL_ALERTS.copy()
-    # Try reading from user config first
     if os.path.exists(config_path):
         try:
             with open(config_path, "r", encoding="utf-8") as f:
@@ -229,14 +218,36 @@ def load_email_alerts():
                 if isinstance(user_email, dict):
                     merged.update(user_email)
         except Exception:
-            # If config is malformed, fall back to defaults
             pass
 
+    # Runtime environment overrides (useful for secure deployments and local testing)
+    env_server = os.getenv("SMTP_SERVER")
+    if env_server:
+        merged["smtp_server"] = env_server
+    env_username = os.getenv("SMTP_USERNAME")
+    if env_username:
+        merged["username"] = env_username
+    env_from = os.getenv("SMTP_FROM_ADDRESS")
+    if env_from:
+        merged["from_address"] = env_from
+    env_to = os.getenv("SMTP_TO_ADDRESSES")
+    if env_to:
+        merged["to_addresses"] = _coerce_to_list(env_to)
+    env_port = os.getenv("SMTP_PORT")
+    if env_port:
+        try:
+            merged["port"] = int(env_port)
+        except ValueError:
+            pass
+    env_tls = os.getenv("SMTP_USE_TLS")
+    if env_tls is not None:
+        merged["use_tls"] = _env_bool("SMTP_USE_TLS", merged.get("use_tls", True))
+    env_enabled = os.getenv("SMTP_ENABLED")
+    if env_enabled is not None:
+        merged["enabled"] = _env_bool("SMTP_ENABLED", merged.get("enabled", False))
+
     # Normalize to_addresses to a list
-    if isinstance(merged.get("to_addresses"), str):
-        merged["to_addresses"] = [addr.strip() for addr in merged["to_addresses"].split(",") if addr.strip()]
-    elif not isinstance(merged.get("to_addresses"), (list, tuple)):
-        merged["to_addresses"] = []
+    merged["to_addresses"] = _coerce_to_list(merged.get("to_addresses", []))
 
     # Ensure numeric fields are correct types
     try:
@@ -244,7 +255,7 @@ def load_email_alerts():
     except Exception:
         merged["port"] = 587
 
-    merged["enabled"] = bool(merged.get("enabled", True))
+    merged["enabled"] = bool(merged.get("enabled", False))
     merged["use_tls"] = bool(merged.get("use_tls", True))
     try:
         merged["threshold_percent"] = float(merged.get("threshold_percent", 40.0) or 40.0)
@@ -255,16 +266,14 @@ def load_email_alerts():
     except Exception:
         merged["cooldown_minutes"] = 10
 
-    # Populate password from keyring (or fallback to any value in merged)
     try:
         merged_password = get_email_password(merged.get("username", ""))
         if merged_password:
             merged["password"] = merged_password
         else:
-            # keep whatever was in the config if keyring empty
-            merged["password"] = merged.get("password", "")
+            merged["password"] = ""
     except Exception:
-        merged["password"] = merged.get("password", "")
+        merged["password"] = ""
 
     return merged
 
@@ -297,7 +306,7 @@ def save_all_configs(server_configs, expected_subsystems=None, expected_ports=No
     if isinstance(email_alerts, dict):
         merged_email.update(email_alerts)
 
-    # If a password was supplied, try to store it securely and remove it from the JSON to avoid plaintext
+    # If a password was supplied, try to store it securely and keep it out of the JSON.
     try:
         pwd = merged_email.pop("password", None)
         username = merged_email.get("username", "")
@@ -305,7 +314,6 @@ def save_all_configs(server_configs, expected_subsystems=None, expected_ports=No
             try:
                 save_email_password(username, pwd)
             except Exception:
-                # best-effort; if saving fails we keep the password out of the JSON
                 pass
     except Exception:
         pass
