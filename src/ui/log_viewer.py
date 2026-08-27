@@ -917,11 +917,17 @@ class LogViewerWidget(QWidget):
 
     def load_log_history(self, active_server_configs=None):
         if active_server_configs is not None:
-            self.active_lpars = sorted({
+            normalized_names = sorted({
                 self._normalize_server_name(name)
                 for name in active_server_configs.keys()
                 if self._normalize_server_name(name)
             })
+            if normalized_names:
+                self.active_lpars = normalized_names
+            elif self.active_lpars:
+                normalized_names = list(self.active_lpars)
+            else:
+                self.active_lpars = []
         elif not self.active_lpars:
             self.active_lpars = []
             self._update_last_refresh_timestamp()
@@ -962,10 +968,12 @@ class LogViewerWidget(QWidget):
         self.populate_views()
 
     def populate_views(self):
-        self.active_lpars = [
+        valid_lpars = [
             name for name in self.active_lpars
             if self._normalize_server_name(name)
         ]
+        if valid_lpars:
+            self.active_lpars = valid_lpars
 
         selected_date = self.date_combo.currentText()
         if not selected_date:
@@ -975,6 +983,12 @@ class LogViewerWidget(QWidget):
         self._update_table_heights()
 
         if not self.active_lpars:
+            if self.log_data_store:
+                available_dates = sorted(self.log_data_store.keys(), reverse=True)
+                if available_dates and self.date_combo.count() == 0:
+                    self.date_combo.addItems(available_dates)
+                if not self.date_combo.currentText() and available_dates:
+                    self.date_combo.setCurrentIndex(0)
             self.asp_table.setRowCount(0)
             self.cpu_table.setRowCount(0)
             self.stream_table.setRowCount(0)
