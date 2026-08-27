@@ -72,33 +72,44 @@ def _repair_wav_file_if_needed(wav_path):
 
 def play_asp_alert_sound():
     """Plays the configured alert WAV asynchronously without blocking the monitoring thread."""
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    # 1. Use get_resource_path first to properly locate bundled PyInstaller resources
     candidate_paths = [
         get_resource_path("src/alert.wav"),
-        os.path.join(base_dir, "src/alert.wav"),
-        os.path.join(os.getcwd(), "src/alert.wav"),
+        get_resource_path("alert.wav"),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "src", "alert.wav"),
+        os.path.join(os.getcwd(), "src", "alert.wav"),
     ]
 
+    wav_path = None
     for path in candidate_paths:
-        if os.path.exists(path):
+        if path and os.path.exists(path):
             wav_path = path
             break
-    else:
-        wav_files = []
+
+    if not wav_path:
+        # Fallback recursive scan if specific paths fail
+        base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
         for root, _, files in os.walk(base_dir):
             for name in files:
                 if name.lower().endswith(".wav"):
-                    wav_files.append(os.path.join(root, name))
-        if wav_files:
-            wav_path = wav_files[0]
-        else:
-            return False
+                    wav_path = os.path.join(root, name)
+                    break
+            if wav_path:
+                break
+
+    if not wav_path or not os.path.exists(wav_path):
+        return False
 
     try:
-        _repair_wav_file_if_needed(wav_path)
+        # Avoid crashing or returning False on write errors inside temp dirs
+        try:
+            _repair_wav_file_if_needed(wav_path)
+        except Exception:
+            pass  # Continue attempting playback even if header write repair is skipped
 
         if sys.platform == "win32":
             import winsound
+            # Play using standard Windows API
             winsound.PlaySound(str(wav_path), winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_NODEFAULT)
             return True
 
@@ -123,7 +134,8 @@ def play_asp_alert_sound():
                 return True
             except Exception:
                 return False
-    except Exception:
+    except Exception as e:
+        print(f"Failed to play alert sound: {e}")
         return False
 
 

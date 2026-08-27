@@ -5,7 +5,7 @@ import sys
 import json
 import csv
 import ast
-from datetime import datetime, timedelta, date  # Cleaned up imports
+from datetime import datetime, timedelta, date
 import requests
 from PyQt6.QtCore import Qt, QTimer, QFileSystemWatcher, QObject, QRunnable, QThreadPool, QThread, pyqtSignal
 from PyQt6.QtGui import QColor, QFont, QCursor
@@ -21,37 +21,55 @@ from config import get_logs_dir
 FIREBASE_DB_URL = "https://as400logger-default-rtdb.asia-southeast1.firebasedatabase.app"
 
 
-def cleanup_old_firebase_logs():
-    """Deletes Firebase logs older than 30 days."""
-    firebase_url = f"{FIREBASE_DB_URL.rstrip('/')}/logs"
-    cutoff_time = datetime.now() - timedelta(days=30)
+class FirebaseCleanupWorker(QRunnable):
+    """Deletes Firebase logs older than 30 days safely in background."""
+    def run(self):
+        try:
+            firebase_url = f"{FIREBASE_DB_URL.rstrip('/')}/logs"
+            cutoff_time = datetime.now() - timedelta(days=30)
+            response = requests.get(f"{firebase_url}.json", timeout=5)
+            if response.status_code != 200 or not response.json():
+                return
 
-    try:
-        # Fetch all logs from Firebase under /logs
-        response = requests.get(f"{firebase_url}.json", timeout=5)
-        if response.status_code != 200 or not response.json():
-            return
-
-        logs = response.json()
-
-        if isinstance(logs, dict):
-            # Iterate and delete entries older than 30 days
-            for key, record in logs.items():
-                if not isinstance(record, dict):
-                    continue
-                
-                timestamp_str = record.get("timestamp")
-                if timestamp_str:
-                    try:
-                        log_date = datetime.strptime(timestamp_str[:19], "%Y-%m-%d %H:%M:%S")
-                        if log_date < cutoff_time:
-                            requests.delete(f"{firebase_url}/{key}.json", timeout=5)
-                            print(f"Cleaned up old Firebase log: {key}")
-                    except ValueError:
+            logs = response.json()
+            if isinstance(logs, dict):
+                for key, record in logs.items():
+                    if not isinstance(record, dict):
                         continue
-                    
-    except Exception as e:
-        print(f"Failed to perform Firebase cleanup: {e}")
+                    timestamp_str = record.get("timestamp")
+                    if timestamp_str:
+                        try:
+                            log_date = datetime.strptime(timestamp_str[:19], "%Y-%m-%d %H:%M:%S")
+                            if log_date < cutoff_time:
+                                requests.delete(f"{firebase_url}/{key}.json", timeout=5)
+                        except ValueError:
+                            continue
+        except Exception as e:
+            print(f"Background Firebase cleanup warning: {e}")
+
+
+class FirebaseInitialFetchWorker(QRunnable):
+    """Background worker that fetches historical Firebase logs at launch."""
+    def __init__(self, callback):
+        super().__init__()
+        self.callback = callback
+
+    def run(self):
+        try:
+            url = f"{FIREBASE_DB_URL.rstrip('/')}/logs.json"
+            response = requests.get(url, timeout=10)
+            if response.status_code == 200 and response.json():
+                data = response.json()
+                if isinstance(data, dict):
+                    for key, node in data.items():
+                        if isinstance(node, dict):
+                            self.callback(node)
+                elif isinstance(data, list):
+                    for node in data:
+                        if isinstance(node, dict):
+                            self.callback(node)
+        except Exception as e:
+            print(f"Failed to fetch initial Firebase logs: {e}")
 
 
 class FirebaseStreamWorker(QThread):
@@ -85,11 +103,11 @@ class FirebaseStreamWorker(QThread):
                                 if "data" in payload:
                                     node_data = payload["data"]
                                     if isinstance(node_data, dict):
-                                        if "timestamp" in node_data:
+                                        if "timestamp" in node_data or "records" in node_data or "lpar" in node_data:
                                             self.log_received.emit(node_data)
                                         else:
                                             for item in node_data.values():
-                                                if isinstance(item, dict) and "timestamp" in item:
+                                                if isinstance(item, dict):
                                                     self.log_received.emit(item)
                             except Exception as e:
                                 print(f"Stream parse error: {e}")
@@ -330,20 +348,34 @@ class LogViewerWidget(QWidget):
         self.file_watcher.fileChanged.connect(self._on_logs_changed)
 
         self._setup_file_watcher()
-        self.load_log_history()
 
-        # Execute Firebase Cleanup in thread pool to prevent UI blocking
-        self._history_thread_pool.start(cleanup_old_firebase_logs)
+        # Asynchronous initializations to avoid main thread freeze
+        QTimer.singleShot(50, self.load_log_history)
+        self._history_thread_pool.start(FirebaseCleanupWorker())
 
-        # Connect Firebase Real-Time Worker
+        # Fetch existing Firebase logs asynchronously on startup
+        fetch_worker = FirebaseInitialFetchWorker(self._on_firebase_log_received)
+        self._history_thread_pool.start(fetch_worker)
+
+        # Connect Firebase Real-Time SSE Worker
         self.firebase_thread = FirebaseStreamWorker(FIREBASE_DB_URL)
         self.firebase_thread.log_received.connect(self._on_firebase_log_received)
         self.firebase_thread.start()
 
     def _on_firebase_log_received(self, log_entry):
-        """Processes real-time log records arriving over Firebase Realtime DB stream."""
+        """Processes and standardizes incoming log records from Firebase."""
+        if not isinstance(log_entry, dict):
+            return
+
         ts = log_entry.get("timestamp", "")
         records = log_entry.get("records", [])
+
+        # Standardize nested/single record structures
+        if not records and ("lpar" in log_entry or "server" in log_entry):
+            records = [log_entry]
+
+        if not ts and records:
+            ts = records[0].get("timestamp", "")
 
         if not ts:
             return
@@ -353,9 +385,18 @@ class LogViewerWidget(QWidget):
         if date_key not in self.log_data_store:
             self.log_data_store[date_key] = []
 
+        # Deduplicate incoming entries by timestamp and records
         batch_tuple = (ts, records)
         if batch_tuple not in self.log_data_store[date_key]:
             self.log_data_store[date_key].append(batch_tuple)
+
+        # Ensure dynamically registered LPARs from Firebase appear in active list
+        for rec in records:
+            if isinstance(rec, dict):
+                lpar_name = rec.get("lpar") or rec.get("server")
+                if lpar_name and lpar_name not in self.active_lpars:
+                    self.active_lpars.append(lpar_name)
+                    self.active_lpars.sort()
 
         current_selection = self.date_combo.currentText()
         available_dates = sorted(self.log_data_store.keys(), reverse=True)
@@ -363,11 +404,15 @@ class LogViewerWidget(QWidget):
         self.date_combo.blockSignals(True)
         self.date_combo.clear()
         self.date_combo.addItems(available_dates)
+
         if current_selection in available_dates:
             self.date_combo.setCurrentText(current_selection)
+        elif available_dates:
+            self.date_combo.setCurrentIndex(0)
+
         self.date_combo.blockSignals(False)
 
-        if self.get_selected_date() == date_key:
+        if self.get_selected_date() == date_key or not current_selection:
             self.populate_views()
 
         self._update_last_refresh_timestamp()
@@ -497,9 +542,16 @@ class LogViewerWidget(QWidget):
             self.load_log_history()
             return
 
-        self.log_data_store = result.get("log_data_store", {})
-        self._processed_batches = result.get("processed_batches", set())
-        self.active_lpars = result.get("active_lpars", self.active_lpars)
+        loaded_store = result.get("log_data_store", {})
+        for d_key, entries in loaded_store.items():
+            if d_key not in self.log_data_store:
+                self.log_data_store[d_key] = []
+            for item in entries:
+                if item not in self.log_data_store[d_key]:
+                    self.log_data_store[d_key].append(item)
+
+        self._processed_batches.update(result.get("processed_batches", set()))
+        self.active_lpars = sorted(list(set(self.active_lpars + result.get("active_lpars", []))))
 
         current_selection = self.date_combo.currentText()
         self.date_combo.blockSignals(True)
@@ -538,7 +590,7 @@ class LogViewerWidget(QWidget):
     def load_log_history(self, active_server_configs=None):
         if active_server_configs is not None:
             self.active_lpars = sorted(list(active_server_configs.keys()))
-        else:
+        elif not self.active_lpars:
             from config import SERVER_CONFIGS
             self.active_lpars = sorted(list(SERVER_CONFIGS.keys()))
 
@@ -553,8 +605,6 @@ class LogViewerWidget(QWidget):
             return
 
         self._history_loading = True
-        self.log_data_store.clear()
-        self._processed_batches.clear()
         self._last_log_scan_signature = scan_signature
         self._last_active_lpars_signature = active_signature
 
@@ -692,7 +742,7 @@ class LogViewerWidget(QWidget):
                 if not isinstance(rec, dict):
                     continue
                 lpar = rec.get("lpar", rec.get("server", ""))
-                if lpar in lpar_order:
+                if lpar in lpar_order or not lpar_order:
                     flat_records.append((ts, rec))
 
         self.stream_table.setRowCount(len(flat_records))

@@ -27,7 +27,7 @@ jobs:
 
       - name: Build Executable with PyInstaller
         run: |
-          pyinstaller --noconsole --onefile --name WinMacOS --paths=src --icon=src/logo.ico --collect-all PyQt6 src/main.py
+          pyinstaller --noconsole --onefile --name WinMacOS --paths=src --add-data "src/alert.wav;src" --icon=src/logo.ico --collect-all PyQt6 src/main.py
 
       - name: Compress Executable into ZIP
         run: |
