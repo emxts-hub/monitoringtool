@@ -342,6 +342,7 @@ class LparCardWidget(QFrame):
         self.current_is_critical = True
         self.current_cpu = 0.0
         self.current_asp = 0.0
+        self.current_jobs = 0
         self.current_subsystems_data = []
         self.current_ports_data = []
         self.detail_expanded = True
@@ -1003,6 +1004,14 @@ class IBMiDashboard(QMainWindow):
         self.timer.timeout.connect(self.fetch_data)
 
         self.apply_theme_state()
+
+        # Postpone background log loading to after the UI loop initializes
+        QTimer.singleShot(300, self.post_init_tasks)
+
+    def post_init_tasks(self):
+        """Perform non-blocking operations after UI layout is painted."""
+        if hasattr(self, 'log_viewer_widget'):
+            self.log_viewer_widget.load_log_history()
 
     def apply_theme_state(self):
         title_color = "#ffffff" if self.is_dark_theme else "#1f2328"

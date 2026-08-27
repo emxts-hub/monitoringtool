@@ -48,11 +48,9 @@ class FirebaseCleanupWorker(QRunnable):
             print(f"Background Firebase cleanup warning: {e}")
 
 
-class FirebaseInitialFetchWorker(QRunnable):
-    """Background worker that fetches historical Firebase logs at launch."""
-    def __init__(self, callback):
-        super().__init__()
-        self.callback = callback
+class FirebaseInitialFetchWorker(QThread):
+    """Background worker that fetches historical Firebase logs at launch via Signals."""
+    log_fetched = pyqtSignal(dict)
 
     def run(self):
         try:
@@ -63,11 +61,11 @@ class FirebaseInitialFetchWorker(QRunnable):
                 if isinstance(data, dict):
                     for key, node in data.items():
                         if isinstance(node, dict):
-                            self.callback(node)
+                            self.log_fetched.emit(node)
                 elif isinstance(data, list):
                     for node in data:
                         if isinstance(node, dict):
-                            self.callback(node)
+                            self.log_fetched.emit(node)
         except Exception as e:
             print(f"Failed to fetch initial Firebase logs: {e}")
 
@@ -124,11 +122,11 @@ class LogHistoryLoadSignals(QObject):
 
 
 class LogHistoryLoader(QRunnable):
-    def __init__(self, target_dir, active_lpars):
+    def __init__(self, target_dir, active_lpars, signals):
         super().__init__()
         self.target_dir = target_dir
         self.active_lpars = sorted(active_lpars)
-        self.signals = LogHistoryLoadSignals()
+        self.signals = signals
 
     def run(self):
         log_data_store = {}
@@ -353,9 +351,10 @@ class LogViewerWidget(QWidget):
         QTimer.singleShot(50, self.load_log_history)
         self._history_thread_pool.start(FirebaseCleanupWorker())
 
-        # Fetch existing Firebase logs asynchronously on startup
-        fetch_worker = FirebaseInitialFetchWorker(self._on_firebase_log_received)
-        self._history_thread_pool.start(fetch_worker)
+        # Fetch existing Firebase logs asynchronously on startup via QThread
+        self.fetch_worker = FirebaseInitialFetchWorker()
+        self.fetch_worker.log_fetched.connect(self._on_firebase_log_received)
+        self.fetch_worker.start()
 
         # Connect Firebase Real-Time SSE Worker
         self.firebase_thread = FirebaseStreamWorker(FIREBASE_DB_URL)
@@ -618,8 +617,11 @@ class LogViewerWidget(QWidget):
                     except Exception:
                         pass
 
-        loader = LogHistoryLoader(target_dir, self.active_lpars)
-        loader.signals.finished.connect(self._on_history_loaded)
+        # Safely instantiate Signal object on Main Thread before starting QRunnable
+        self.history_signals = LogHistoryLoadSignals()
+        self.history_signals.finished.connect(self._on_history_loaded)
+
+        loader = LogHistoryLoader(target_dir, self.active_lpars, self.history_signals)
         self._history_thread_pool.start(loader)
 
     def on_date_changed(self):
@@ -1076,8 +1078,11 @@ class LogViewerWidget(QWidget):
         dialog.exec()
 
     def closeEvent(self, event):
-        if hasattr(self, 'firebase_thread'):
+        if hasattr(self, 'firebase_thread') and self.firebase_thread.isRunning():
             self.firebase_thread.stop()
+        if hasattr(self, 'fetch_worker') and self.fetch_worker.isRunning():
+            self.fetch_worker.quit()
+            self.fetch_worker.wait()
         super().closeEvent(event)
 
     def get_selected_date(self) -> str:
