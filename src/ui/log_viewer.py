@@ -5,8 +5,9 @@ import sys
 import json
 import csv
 import ast
-import datetime
-from PyQt6.QtCore import Qt, QTimer, QFileSystemWatcher, QObject, QRunnable, QThreadPool, pyqtSignal
+from datetime import datetime, timedelta, date  # Cleaned up imports
+import requests
+from PyQt6.QtCore import Qt, QTimer, QFileSystemWatcher, QObject, QRunnable, QThreadPool, QThread, pyqtSignal
 from PyQt6.QtGui import QColor, QFont, QCursor
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, 
@@ -15,6 +16,89 @@ from PyQt6.QtWidgets import (
     QApplication, QDialog, QGridLayout
 )
 from config import get_logs_dir
+
+# Firebase Realtime Database Endpoint
+FIREBASE_DB_URL = "https://as400logger-default-rtdb.asia-southeast1.firebasedatabase.app"
+
+
+def cleanup_old_firebase_logs():
+    """Deletes Firebase logs older than 30 days."""
+    firebase_url = f"{FIREBASE_DB_URL.rstrip('/')}/logs"
+    cutoff_time = datetime.now() - timedelta(days=30)
+
+    try:
+        # Fetch all logs from Firebase under /logs
+        response = requests.get(f"{firebase_url}.json", timeout=5)
+        if response.status_code != 200 or not response.json():
+            return
+
+        logs = response.json()
+
+        if isinstance(logs, dict):
+            # Iterate and delete entries older than 30 days
+            for key, record in logs.items():
+                if not isinstance(record, dict):
+                    continue
+                
+                timestamp_str = record.get("timestamp")
+                if timestamp_str:
+                    try:
+                        log_date = datetime.strptime(timestamp_str[:19], "%Y-%m-%d %H:%M:%S")
+                        if log_date < cutoff_time:
+                            requests.delete(f"{firebase_url}/{key}.json", timeout=5)
+                            print(f"Cleaned up old Firebase log: {key}")
+                    except ValueError:
+                        continue
+                    
+    except Exception as e:
+        print(f"Failed to perform Firebase cleanup: {e}")
+
+
+class FirebaseStreamWorker(QThread):
+    """Background listener reading real-time SSE stream events from Firebase."""
+    log_received = pyqtSignal(dict)
+
+    def __init__(self, firebase_db_url):
+        super().__init__()
+        self.url = f"{firebase_db_url.rstrip('/')}/logs.json"
+        self._is_running = True
+
+    def run(self):
+        headers = {"Accept": "text/event-stream"}
+        try:
+            response = requests.get(self.url, headers=headers, stream=True, timeout=60)
+            event_type = None
+
+            for line in response.iter_lines():
+                if not self._is_running:
+                    break
+
+                if line:
+                    decoded = line.decode("utf-8")
+                    if decoded.startswith("event:"):
+                        event_type = decoded.split(":", 1)[1].strip()
+                    elif decoded.startswith("data:"):
+                        data_str = decoded.split(":", 1)[1].strip()
+                        if event_type in ["put", "patch"] and data_str != "null":
+                            try:
+                                payload = json.loads(data_str)
+                                if "data" in payload:
+                                    node_data = payload["data"]
+                                    if isinstance(node_data, dict):
+                                        if "timestamp" in node_data:
+                                            self.log_received.emit(node_data)
+                                        else:
+                                            for item in node_data.values():
+                                                if isinstance(item, dict) and "timestamp" in item:
+                                                    self.log_received.emit(item)
+                            except Exception as e:
+                                print(f"Stream parse error: {e}")
+        except Exception as e:
+            print(f"Firebase connection error: {e}")
+
+    def stop(self):
+        self._is_running = False
+        self.wait()
 
 
 class LogHistoryLoadSignals(QObject):
@@ -65,7 +149,7 @@ class LogHistoryLoader(QRunnable):
                         if not ts:
                             continue
 
-                        date_key = ts[:10] if len(ts) >= 10 else datetime.date.today().strftime("%Y-%m-%d")
+                        date_key = ts[:10] if len(ts) >= 10 else date.today().strftime("%Y-%m-%d")
                         if date_key not in log_data_store:
                             log_data_store[date_key] = []
 
@@ -95,7 +179,6 @@ class LogViewerWidget(QWidget):
     ]
 
     def _make_font(self, family="Segoe UI", point_size=9, weight=QFont.Weight.Normal):
-        """Creates a QFont safely preventing Point Size <= 0 warnings."""
         font = QFont(family)
         try:
             size_value = int(point_size)
@@ -167,7 +250,6 @@ class LogViewerWidget(QWidget):
         self.container_layout.setContentsMargins(0, 0, 0, 0)
         self.container_layout.setSpacing(16)
 
-        # Header Bar
         header_bar = QHBoxLayout()
         self.title_label = QLabel("IBM i LPAR Daily Summary")
         self.title_label.setFont(self._make_font("Segoe UI", 14, QFont.Weight.Bold))
@@ -213,7 +295,6 @@ class LogViewerWidget(QWidget):
 
         self.container_layout.addLayout(header_bar)
 
-        # Layout Sections
         self.container_layout.addWidget(self._create_section_header("ASP Usage"))
         self.asp_table = self._build_matrix_table()
         self.container_layout.addWidget(self.asp_table)
@@ -238,7 +319,7 @@ class LogViewerWidget(QWidget):
         scroll.setWidget(container)
         main_layout.addWidget(scroll)
 
-        # File watcher & reload timer setup
+        # File watcher backup setup
         self.reload_timer = QTimer(self)
         self.reload_timer.setSingleShot(True)
         self.reload_timer.setInterval(1000)
@@ -251,16 +332,54 @@ class LogViewerWidget(QWidget):
         self._setup_file_watcher()
         self.load_log_history()
 
+        # Execute Firebase Cleanup in thread pool to prevent UI blocking
+        self._history_thread_pool.start(cleanup_old_firebase_logs)
+
+        # Connect Firebase Real-Time Worker
+        self.firebase_thread = FirebaseStreamWorker(FIREBASE_DB_URL)
+        self.firebase_thread.log_received.connect(self._on_firebase_log_received)
+        self.firebase_thread.start()
+
+    def _on_firebase_log_received(self, log_entry):
+        """Processes real-time log records arriving over Firebase Realtime DB stream."""
+        ts = log_entry.get("timestamp", "")
+        records = log_entry.get("records", [])
+
+        if not ts:
+            return
+
+        date_key = ts[:10] if len(ts) >= 10 else date.today().strftime("%Y-%m-%d")
+
+        if date_key not in self.log_data_store:
+            self.log_data_store[date_key] = []
+
+        batch_tuple = (ts, records)
+        if batch_tuple not in self.log_data_store[date_key]:
+            self.log_data_store[date_key].append(batch_tuple)
+
+        current_selection = self.date_combo.currentText()
+        available_dates = sorted(self.log_data_store.keys(), reverse=True)
+
+        self.date_combo.blockSignals(True)
+        self.date_combo.clear()
+        self.date_combo.addItems(available_dates)
+        if current_selection in available_dates:
+            self.date_combo.setCurrentText(current_selection)
+        self.date_combo.blockSignals(False)
+
+        if self.get_selected_date() == date_key:
+            self.populate_views()
+
+        self._update_last_refresh_timestamp()
+
     def set_theme(self, is_dark_theme):
         self.is_dark_theme = is_dark_theme
         if is_dark_theme:
             background = "#0d1117"
-            surface = "#161b22"
             text = "#ffffff"
             muted = "#8b949e"
         else:
             background = "#f6f8fa"
-            surface = "#ffffff"
             text = "#1f2328"
             muted = "#57606a"
 
@@ -287,7 +406,7 @@ class LogViewerWidget(QWidget):
         self.reload_timer.start()
 
     def _update_last_refresh_timestamp(self):
-        now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.last_refresh_label.setText(f"Last updated: {now_str}")
 
     def _create_section_header(self, text):
@@ -392,7 +511,7 @@ class LogViewerWidget(QWidget):
             if current_selection in available_dates:
                 self.date_combo.setCurrentText(current_selection)
         else:
-            self.date_combo.addItem(datetime.date.today().strftime("%Y-%m-%d"))
+            self.date_combo.addItem(date.today().strftime("%Y-%m-%d"))
 
         self.date_combo.blockSignals(False)
         self.populate_views()
@@ -459,7 +578,7 @@ class LogViewerWidget(QWidget):
     def populate_views(self):
         selected_date = self.date_combo.currentText()
         if not selected_date:
-            selected_date = datetime.date.today().strftime("%Y-%m-%d")
+            selected_date = date.today().strftime("%Y-%m-%d")
 
         self.title_label.setText(f"IBM i LPAR Daily Summary ({selected_date})")
         self._update_table_heights()
@@ -479,7 +598,7 @@ class LogViewerWidget(QWidget):
             if not ts or len(ts) < 13:
                 continue
             try:
-                dt = datetime.datetime.strptime(ts[:19], "%Y-%m-%d %H:%M:%S")
+                dt = datetime.strptime(ts[:19], "%Y-%m-%d %H:%M:%S")
                 hour_idx = dt.hour
             except ValueError:
                 continue
@@ -676,10 +795,10 @@ class LogViewerWidget(QWidget):
         return ", ".join(formatted_names) if formatted_names else "None"
 
     def export_to_excel(self):
-        selected_date = self.date_combo.currentText() or datetime.date.today().strftime("%Y-%m-%d")
+        selected_date = self.date_combo.currentText() or date.today().strftime("%Y-%m-%d")
         default_filename = f"IBM_i_Summary_{selected_date}.xlsx"
 
-        file_path, selected_filter = QFileDialog.getSaveFileName(
+        file_path, _ = QFileDialog.getSaveFileName(
             self,
             "Export Summary Log",
             default_filename,
@@ -758,10 +877,7 @@ class LogViewerWidget(QWidget):
                     widget = self.stream_table.cellWidget(r, c)
                     if widget:
                         lbl = widget.findChild(QLabel)
-                        if lbl:
-                            row_data.append(lbl.text())
-                        else:
-                            row_data.append("")
+                        row_data.append(lbl.text() if lbl else "")
                     else:
                         row_data.append("")
             sheet.append(row_data)
@@ -909,8 +1025,13 @@ class LogViewerWidget(QWidget):
 
         dialog.exec()
 
+    def closeEvent(self, event):
+        if hasattr(self, 'firebase_thread'):
+            self.firebase_thread.stop()
+        super().closeEvent(event)
+
     def get_selected_date(self) -> str:
-        return self.date_combo.currentText() or datetime.date.today().strftime("%Y-%m-%d")
+        return self.date_combo.currentText() or date.today().strftime("%Y-%m-%d")
 
     def clear_logs(self):
         self.log_data_store.clear()

@@ -4,19 +4,16 @@ import json
 from datetime import datetime, timezone
 
 APP_NAME = "IBMi_Dashboard"
-
-APP_NAME = "LPAR Manager"
 APP_VERSION = "1.1.2"
 
 # Hardcoded cut-off date (set to December 31, 2026)
 # To disable hard expiration, set HARD_EXPIRATION_DATE = None
-HARD_EXPIRATION_DATE = datetime(2026, 8, 20, 23, 59, 59, tzinfo=timezone.utc)
+HARD_EXPIRATION_DATE = datetime(2026, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
 
 # GitHub Pages URL serving your version metadata
 VERSION_CHECK_URL = "https://emxts-hub.github.io/monitoringtool/version.json"
 
 def is_build_expired() -> bool:
-    """Check if local system time has exceeded the hard expiration threshold."""
     if HARD_EXPIRATION_DATE is None:
         return False
     now = datetime.now(timezone.utc)
@@ -54,8 +51,8 @@ def get_config_path():
     return os.path.join(get_app_data_dir(), "config.json")
 
 def get_logs_dir():
-    """Returns the writable application log directory."""
-    logs_dir = os.path.join(get_app_data_dir(), "logs")
+    """Returns the writable application log directory in the project folder."""
+    logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
     os.makedirs(logs_dir, exist_ok=True)
     return logs_dir
 

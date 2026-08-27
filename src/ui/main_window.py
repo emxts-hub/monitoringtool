@@ -1,10 +1,11 @@
-#ui/main_window.py
+# ui/main_window.py
 import sys
 import os
 import threading
 import time
 from typing import cast
 from collections import deque
+from config import APP_VERSION
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -33,18 +34,18 @@ class DualSparklineWidget(QWidget):
         self.max_points = max_points
         self.cpu_history = deque(maxlen=max_points)
         self.asp_history = deque(maxlen=max_points)
-        self.setFixedHeight(48)  # Height expanded to accommodate stacked sub-graphs
-        self.is_dark_theme = True
+        self.setFixedHeight(48)
+        
+        app = QApplication.instance()
+        self.is_dark_theme = bool(app.property("is_dark_theme")) if app and app.property("is_dark_theme") is not None else True
 
     def add_values(self, cpu_val, asp_val=None):
-        """Update CPU and ASP metric values."""
         self.cpu_history.append(float(cpu_val))
         if asp_val is not None:
             self.asp_history.append(float(asp_val))
         self.update()
 
     def add_value(self, val):
-        """Backward compatibility for single-value updates."""
         self.add_values(val)
 
     def set_theme(self, is_dark_theme):
@@ -68,16 +69,13 @@ class DualSparklineWidget(QWidget):
             y = (rect.bottom() - margin) - ((val / max_val) * (h - 2 * margin))
             points.append(QPointF(x, y))
 
-        # Color threshold check (High usage warning)
         latest_val = history[-1]
         line_color = QColor("#f85149") if latest_val >= 90 else default_color
 
-        # Draw Line
         painter.setPen(QPen(line_color, 1.2))
         for i in range(len(points) - 1):
             painter.drawLine(points[i], points[i+1])
 
-        # Draw Area Fill
         fill_color = QColor(line_color)
         fill_color.setAlpha(30)
         poly_points = [QPointF(points[0].x(), rect.bottom())] + points + [QPointF(points[-1].x(), rect.bottom())]
@@ -96,20 +94,16 @@ class DualSparklineWidget(QWidget):
         h = float(self.height())
         half_h = (h - 2) / 2.0
 
-        # Define bounds for Upper (CPU) and Lower (ASP) graphs
         cpu_rect = QRectF(0, 0, w, half_h)
         asp_rect = QRectF(0, half_h + 2, w, half_h)
 
-        # Draw Center Separator Line
         sep_color = QColor("#30363d" if self.is_dark_theme else "#d0d7de")
         painter.setPen(QPen(sep_color, 0.5, Qt.PenStyle.DashLine))
         painter.drawLine(QPointF(0, half_h + 1), QPointF(w, half_h + 1))
 
-        # Colors
-        cpu_color = QColor("#58a6ff" if self.is_dark_theme else "#0969da")  # Blue for CPU
-        asp_color = QColor("#a371f7" if self.is_dark_theme else "#8250df")  # Purple for ASP
+        cpu_color = QColor("#58a6ff" if self.is_dark_theme else "#0969da")
+        asp_color = QColor("#a371f7" if self.is_dark_theme else "#8250df")
 
-        # Render Sub-graphs
         if len(self.cpu_history) >= 2:
             self._draw_subgraph(painter, self.cpu_history, cpu_rect, cpu_color)
 
@@ -125,7 +119,7 @@ class SubsystemDetailDialog(QDialog):
         self.setWindowTitle(f"{server_name} - Detailed Subsystem Status")
         self.resize(850, 520)
         app = QApplication.instance()
-        is_dark_theme = bool(app.property("is_dark_theme")) if app is not None else False
+        is_dark_theme = bool(app.property("is_dark_theme")) if app and app.property("is_dark_theme") is not None else True
         dialog_bg = "#0d1117" if is_dark_theme else "#f6f8fa"
         table_bg = "#161b22" if is_dark_theme else "#ffffff"
         surface = "#21262d" if is_dark_theme else "#eaeef2"
@@ -263,7 +257,8 @@ class SubsystemDetailDialog(QDialog):
 class LinearGauge(QWidget):
     def __init__(self, title, initial_value=0.0, parent=None):
         super().__init__(parent)
-        self.is_dark_theme = True
+        app = QApplication.instance()
+        self.is_dark_theme = bool(app.property("is_dark_theme")) if app and app.property("is_dark_theme") is not None else True
         self.is_uncapped = False
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -341,7 +336,8 @@ class LparCardWidget(QFrame):
     def __init__(self, server_name, parent=None):
         super().__init__(parent)
         self.server_name = server_name
-        self.is_dark_theme = True
+        app = QApplication.instance()
+        self.is_dark_theme = bool(app.property("is_dark_theme")) if app and app.property("is_dark_theme") is not None else True
         self.current_status = "OFFLINE"
         self.current_is_critical = True
         self.current_cpu = 0.0
@@ -363,13 +359,6 @@ class LparCardWidget(QFrame):
         self.setMinimumWidth(0)
         self.setFixedHeight(350)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.setStyleSheet("""
-            QFrame {
-                background-color: #161b22;
-                border: 1px solid #30363d;
-                border-radius: 8px;
-            }
-        """)
         
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setSpacing(2)
@@ -377,7 +366,6 @@ class LparCardWidget(QFrame):
         header_layout = QHBoxLayout()
         self.name_label = QLabel(server_name)
         self.name_label.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
-        self.name_label.setStyleSheet("color: #ffffff; border: none; background-color: transparent;")
 
         self.uncapped_badge = QLabel("UNCAPPED")
         self.uncapped_badge.setFont(QFont("Segoe UI", 7, QFont.Weight.Bold))
@@ -394,7 +382,6 @@ class LparCardWidget(QFrame):
         self.status_badge.setFont(QFont("Segoe UI", 8, QFont.Weight.Bold))
         self.status_badge.setFixedWidth(82)
         self.status_badge.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-        self.status_badge.setStyleSheet("color: #3fb950; border: none; font-weight: bold; background-color: transparent;")
 
         header_layout.addWidget(self.name_label)
         header_layout.addWidget(self.uncapped_badge)
@@ -410,17 +397,14 @@ class LparCardWidget(QFrame):
         gauges_layout.addWidget(self.asp_gauge, stretch=1)
         self.main_layout.addLayout(gauges_layout)
 
-        # Dual Upper (CPU) / Lower (ASP) Trend Sparkline
         self.sparkline = DualSparklineWidget(max_points=35)
         self.main_layout.addWidget(self.sparkline)
 
         jobs_layout = QHBoxLayout()
         self.jobs_title_label = QLabel("Active Jobs")
         self.jobs_title_label.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
-        self.jobs_title_label.setStyleSheet("color: #8b949e; background-color: transparent;")
         self.jobs_val_label = QLabel("0")
         self.jobs_val_label.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
-        self.jobs_val_label.setStyleSheet("color: #ffffff; background-color: transparent;")
         
         jobs_layout.addWidget(self.jobs_title_label)
         jobs_layout.addStretch()
@@ -429,7 +413,6 @@ class LparCardWidget(QFrame):
 
         self.health_label = QLabel("Last success: -- | Retries: 0")
         self.health_label.setFont(QFont("Segoe UI", 6))
-        self.health_label.setStyleSheet("color: #8b949e; background-color: transparent;")
         self.health_label.setToolTip("Server health summary")
         self.health_label.setWordWrap(True)
         self.main_layout.addWidget(self.health_label)
@@ -437,7 +420,6 @@ class LparCardWidget(QFrame):
         sub_header = QHBoxLayout()
         self.subsystems_title_label = QLabel("Subsystems")
         self.subsystems_title_label.setFont(QFont("Segoe UI", 8, QFont.Weight.Bold))
-        self.subsystems_title_label.setStyleSheet("color: #8b949e; background-color: transparent;")
         sub_header.addWidget(self.subsystems_title_label)
         sub_header.addStretch()
         self.main_layout.addLayout(sub_header)
@@ -449,7 +431,6 @@ class LparCardWidget(QFrame):
 
         self.network_title_label = QLabel("Network Services")
         self.network_title_label.setFont(QFont("Segoe UI", 8, QFont.Weight.Bold))
-        self.network_title_label.setStyleSheet("color: #8b949e; margin-top: 1px; background-color: transparent;")
         self.main_layout.addWidget(self.network_title_label)
 
         self.ports_container = QWidget()
@@ -457,9 +438,7 @@ class LparCardWidget(QFrame):
         self.ports_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.addWidget(self.ports_container)
 
-        self.set_card_style(
-            is_critical=self.current_is_critical
-        )
+        self.set_theme(self.is_dark_theme)
 
     def _clear_detail_widgets(self):
         for layout in (self.subsys_layout, self.ports_layout):
@@ -480,14 +459,15 @@ class LparCardWidget(QFrame):
         for label in (self.name_label, self.jobs_val_label):
             label.setStyleSheet(f"color: {value_color}; background-color: transparent;")
 
-        for label in (self.jobs_title_label, self.subsystems_title_label, self.network_title_label):
+        for label in (self.jobs_title_label, self.subsystems_title_label, self.network_title_label, self.health_label):
             label.setStyleSheet(f"color: {label_color}; background-color: transparent;")
 
         self.name_label.setText(self.server_name)
 
-        self.set_card_style(
-            is_critical=self.current_is_critical
-        )
+        self._last_card_style_key = None
+        self._last_status_badge_key = None
+        self.set_card_style(is_critical=self.current_is_critical)
+        self.set_status(self.current_status)
 
     def open_subsystem_modal(self, server_name):
         dialog = SubsystemDetailDialog(
@@ -507,7 +487,7 @@ class LparCardWidget(QFrame):
             border_color = "#f85149" if is_critical else "#d0d7de"
             self.setStyleSheet(f"""
                 LparCardWidget {{
-                    background-color: #f6f8fa;
+                    background-color: #ffffff;
                     border: 2px solid {border_color};
                     border-radius: 10px;
                 }}
@@ -771,6 +751,9 @@ class GlobalAlertsWidget(QGroupBox):
         self.active_lpars = 0
         self.configured_lpars = 0
         self._last_summary_signature = None
+        
+        app = QApplication.instance()
+        self.is_dark_theme = bool(app.property("is_dark_theme")) if app and app.property("is_dark_theme") is not None else True
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(16, 8, 16, 8)
@@ -840,7 +823,7 @@ class GlobalAlertsWidget(QGroupBox):
         layout.addStretch(1)
         layout.addLayout(m4_layout)
 
-        self.set_theme(False)
+        self.set_theme(self.is_dark_theme)
 
     def set_theme(self, is_dark_theme):
         self.is_dark_theme = is_dark_theme
@@ -965,17 +948,19 @@ def resource_path(relative_path):
 
 
 class IBMiDashboard(QMainWindow):
-    def __init__(self, version_str: str = "1.0.0"):
+    def __init__(self, version_str: str = APP_VERSION):
         super().__init__()
         self.version_str = version_str
         self.setWindowTitle(f"LPAR Manager - v{version_str}")
         self.setGeometry(100, 100, 900, 600)
-        self.setStyleSheet("background-color: #0d1117;")
+
+        app = QApplication.instance()
+        self.is_dark_theme = bool(app.property("is_dark_theme")) if app and app.property("is_dark_theme") is not None else True
+
         self.setWindowIcon(QIcon(resource_path("logo.png")))
         self.resize(1750, 950)
 
         self.is_monitoring = False
-        self.is_dark_theme = True
         self.card_widgets = {}
         self.active_server_configs = dict(SERVER_CONFIGS)
         self.latest_results_cache = {}
@@ -1017,15 +1002,26 @@ class IBMiDashboard(QMainWindow):
         self.timer.setInterval(self.refresh_interval_ms)
         self.timer.timeout.connect(self.fetch_data)
 
+        self.apply_theme_state()
+
+    def apply_theme_state(self):
+        title_color = "#ffffff" if self.is_dark_theme else "#1f2328"
+        self.cards_title.setStyleSheet(f"color: {title_color}; background-color: transparent;")
+        self.header_title.setStyleSheet(f"color: {title_color}; background-color: transparent;")
+        self.global_alerts.set_theme(self.is_dark_theme)
+        self.refresh_widget.set_theme(self.is_dark_theme)
+        self.log_viewer_widget.set_theme(self.is_dark_theme)
+        self.theme_btn.setText("☀ Light Theme" if self.is_dark_theme else "🌙 Dark Theme")
+        self.update_toggle_button_style()
+
     def init_live_monitor_ui(self):
         main_layout = QVBoxLayout(self.live_monitor_widget)
         main_layout.setContentsMargins(14, 14, 14, 14)
         main_layout.setSpacing(4)
 
-        header = QLabel(f"Dashboard Active (v{self.version_str})")
-        header.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
-        header.setStyleSheet("color: #c9d1d9; background-color: transparent;")
-        main_layout.addWidget(header)
+        self.header_title = QLabel(f"Dashboard Active (v{self.version_str})")
+        self.header_title.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
+        main_layout.addWidget(self.header_title)
 
         top_bar_layout = QHBoxLayout()
         top_bar_layout.setSpacing(10)
@@ -1065,19 +1061,6 @@ class IBMiDashboard(QMainWindow):
         self.settings_btn = QPushButton("⚙️ Settings")
         self.settings_btn.setFont(QFont("Segoe UI", 8, QFont.Weight.Bold))
         self.settings_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.settings_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #21262d; 
-                color: #c9d1d9;
-                border: 1px solid #30363d; 
-                padding: 6px 12px;
-                border-radius: 6px;
-            }
-            QPushButton:hover { 
-                background-color: #30363d; 
-                color: #ffffff;
-            }
-        """)
         self.settings_btn.clicked.connect(self.open_lpar_settings)
         cred_layout.addWidget(self.settings_btn)
 
@@ -1089,7 +1072,6 @@ class IBMiDashboard(QMainWindow):
 
         self.refresh_widget = RefreshStatusWidget()
         self.refresh_widget.setFixedHeight(85)
-        self.refresh_widget.set_theme(self.is_dark_theme)
         top_bar_layout.addWidget(self.refresh_widget, stretch=0)
 
         self.retry_status_label = QLabel("")
@@ -1104,45 +1086,37 @@ class IBMiDashboard(QMainWindow):
         self.theme_btn.clicked.connect(self.toggle_theme)
         top_bar_layout.addWidget(self.theme_btn, stretch=0, alignment=Qt.AlignmentFlag.AlignVCenter)
 
-        self.update_toggle_button_style()
-
         main_layout.addLayout(top_bar_layout)
 
         self.status_label = QLabel("Status: Idle. Enter credentials and click 'Start Auto-Refresh'.")
         self.status_label.setStyleSheet("color: #8b949e; font-size: 11px; background-color: transparent;")
         main_layout.addWidget(self.status_label)
 
-        # Filter & Control Toolbar
         filter_bar_layout = QHBoxLayout()
         filter_bar_layout.setSpacing(10)
 
         self.cards_title = QLabel("Server Health Cards")
         self.cards_title.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
-        self.cards_title.setStyleSheet("color: #c9d1d9; background-color: transparent;")
         filter_bar_layout.addWidget(self.cards_title)
 
         filter_bar_layout.addStretch()
 
-        # Search Filter Input
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("🔍 Filter by server name...")
         self.search_input.setFixedWidth(200)
         self.search_input.textChanged.connect(self.filter_and_sort_cards)
         filter_bar_layout.addWidget(self.search_input)
 
-        # Filter Options Dropdown
         self.status_filter_combo = QComboBox()
         self.status_filter_combo.addItems(["Filter: All Statuses", "Filter: Critical Only", "Filter: Online Only", "Filter: Offline Only"])
         self.status_filter_combo.currentIndexChanged.connect(self.filter_and_sort_cards)
         filter_bar_layout.addWidget(self.status_filter_combo)
 
-        # Sorting Controls Dropdown
         self.sort_combo = QComboBox()
         self.sort_combo.addItems(["Sort: Name (A-Z)", "Sort: CPU High-to-Low", "Sort: ASP High-to-Low", "Sort: Status Critical First"])
         self.sort_combo.currentIndexChanged.connect(self.filter_and_sort_cards)
         filter_bar_layout.addWidget(self.sort_combo)
 
-        # Logical Server Grouping Dropdown
         self.group_combo = QComboBox()
         self.group_combo.addItems(["Grouping: Prefix (JDAD/JDAP)", "Grouping: Status", "Grouping: None (Grid)"])
         self.group_combo.currentIndexChanged.connect(self.filter_and_sort_cards)
@@ -1368,14 +1342,7 @@ class IBMiDashboard(QMainWindow):
             for card in self.card_widgets.values():
                 card.set_theme(self.is_dark_theme)
                 
-            title_color = "#ffffff" if self.is_dark_theme else "#1f2328"
-            self.cards_title.setStyleSheet(f"color: {title_color}; background-color: transparent;")
-            
-            self.global_alerts.set_theme(self.is_dark_theme)
-            self.refresh_widget.set_theme(self.is_dark_theme)
-            self.log_viewer_widget.set_theme(self.is_dark_theme)
-            self.update_toggle_button_style()
-            self.theme_btn.setText("☀ Light Theme" if self.is_dark_theme else "🌙 Dark Theme")
+            self.apply_theme_state()
         finally:
             self.setUpdatesEnabled(True)
             self.repaint()

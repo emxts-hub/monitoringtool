@@ -42,9 +42,8 @@ class AppExpirationDialog(QDialog):
                 color: #c9d1d9;
             }
             QLabel {
+                background-color: transparent;
                 font-family: 'Segoe UI', sans-serif;
-                font-size: 13px;
-                color: #f85149;
             }
             QPushButton {
                 border-radius: 6px;
@@ -58,7 +57,15 @@ class AppExpirationDialog(QDialog):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
 
-        self.msg_label = QLabel(message)
+        # Build clean HTML content with transparent background
+        full_message = (
+            f"<div style='text-align: center; color: #f85149; font-size: 14px; font-weight: bold;'>"
+            f"{message}</div>"
+            f"<div style='text-align: center; color: #8b949e; font-size: 12px; margin-top: 10px;'>"
+            f"Please contact the developer for a new build or access renewal.</div>"
+        )
+
+        self.msg_label = QLabel(full_message)
         self.msg_label.setWordWrap(True)
         self.msg_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.msg_label)
@@ -107,10 +114,6 @@ class AppExpirationDialog(QDialog):
     def reject(self):
         """Prevent escaping out of the mandatory modal via ESC key."""
         pass
-
-
-
-
 
 
 

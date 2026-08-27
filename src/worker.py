@@ -11,10 +11,13 @@ import subprocess
 import smtplib
 from datetime import datetime, timedelta
 from email.message import EmailMessage
+import requests
 import pyodbc
 from PyQt6.QtCore import QRunnable, QObject, pyqtSignal, QThreadPool
 from config import SERVER_CONFIGS, MONITORED_PORTS, EXPECTED_PORTS, get_logs_dir, load_email_alerts, get_resource_path
 
+# Firebase Realtime Database Endpoint
+FIREBASE_DB_URL = "https://as400logger-default-rtdb.asia-southeast1.firebasedatabase.app"
 
 _LOG_WRITE_LOCK = threading.Lock()
 _ALERT_STATE_LOCK = threading.Lock()
@@ -71,9 +74,9 @@ def play_asp_alert_sound():
     """Plays the configured alert WAV asynchronously without blocking the monitoring thread."""
     base_dir = os.path.dirname(os.path.abspath(__file__))
     candidate_paths = [
-        get_resource_path("alert.wav"),
-        os.path.join(base_dir, "alert.wav"),
-        os.path.join(os.getcwd(), "alert.wav"),
+        get_resource_path("src/alert.wav"),
+        os.path.join(base_dir, "src/alert.wav"),
+        os.path.join(os.getcwd(), "src/alert.wav"),
     ]
 
     for path in candidate_paths:
@@ -215,7 +218,6 @@ def ping_ip(host_ip, timeout_ms=1000):
     
     command = ["ping", param, "1", timeout_param, timeout_val, host_ip]
     try:
-        # Prevent a visible console window on Windows when running the ping binary
         creation_flags = 0
         if is_windows and hasattr(subprocess, "CREATE_NO_WINDOW"):
             creation_flags = subprocess.CREATE_NO_WINDOW
@@ -248,7 +250,7 @@ def cleanup_old_logs(days_to_keep=30):
 
 
 def save_single_lpar_log(sys_info, server_configs=None):
-    """Appends a single LPAR result directly to the daily JSON history file upon worker completion."""
+    """Appends a single LPAR result directly to local JSON history AND pushes it to Firebase Realtime Database."""
     logs_dir = get_logs_dir()
     now = datetime.now()
     date_str = now.strftime("%Y-%m-%d")
@@ -296,6 +298,7 @@ def save_single_lpar_log(sys_info, server_configs=None):
         "records": [record]
     }
 
+    # 1. Local Disk Write
     with _LOG_WRITE_LOCK:
         existing_data = []
         if os.path.exists(filepath):
@@ -319,6 +322,13 @@ def save_single_lpar_log(sys_info, server_configs=None):
             if temp_path and os.path.exists(temp_path):
                 os.remove(temp_path)
         cleanup_old_logs(days_to_keep=30)
+
+    # 2. Sync to Firebase
+    try:
+        url = f"{FIREBASE_DB_URL.rstrip('/')}/logs.json"
+        requests.post(url, json=entry, timeout=5)
+    except Exception as e:
+        print(f"Failed to push entry to Firebase: {e}")
 
 
 class LparWorkerSignals(QObject):
@@ -357,7 +367,6 @@ class SingleLparRunnable(QRunnable):
         if self.check_cancelled():
             return
 
-        # Pre-check IP reachability via ICMP ping on this background thread
         if not ping_ip(host):
             result = {
                 "server": self.server,
