@@ -20,7 +20,7 @@ from PyQt6.QtWidgets import (
 )
 
 from worker import SingleLparRunnable
-from ui.log_viewer import LogViewerWidget
+from ui.log_viewer import LogViewerWidget, MonthlyReportWidget
 from ui.widgets import RefreshStatusWidget, StatusBadgesWidget, SubsystemGridWidget, ThemeLoadingDialog
 from dialogs import LparSettingsDialog
 from config import SERVER_CONFIGS, EXPECTED_SUBSYSTEMS, get_resource_path
@@ -996,6 +996,10 @@ class IBMiDashboard(QMainWindow):
         self.tabs = QTabWidget()
         self.setCentralWidget(self.tabs)
 
+        self.sync_loading_dialog = ThemeLoadingDialog(self)
+        self.sync_loading_dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
+        self.sync_loading_dialog.hide()
+
         self.live_monitor_widget = QWidget()
         self.init_live_monitor_ui()
         self.tabs.addTab(self.live_monitor_widget, "📊 Live Monitor")
@@ -1003,6 +1007,12 @@ class IBMiDashboard(QMainWindow):
         self.log_viewer_widget = LogViewerWidget()
         self.log_viewer_widget.set_theme(self.is_dark_theme)
         self.tabs.addTab(self.log_viewer_widget, "📜 Log Viewer History")
+
+        self.monthly_report_widget = MonthlyReportWidget()
+        self.monthly_report_widget.set_log_data_store(self.log_viewer_widget.firebase_log_data_store)
+        self.log_viewer_widget.monthly_report_widget = self.monthly_report_widget
+        self.monthly_report_widget.set_theme(self.is_dark_theme)
+        self.tabs.addTab(self.monthly_report_widget, "📈 Monthly ASP/CPU Report")
 
         self.timer = QTimer(self)
         self.timer.setSingleShot(True)
@@ -1014,10 +1024,34 @@ class IBMiDashboard(QMainWindow):
         # Postpone background log loading to after the UI loop initializes
         QTimer.singleShot(300, self.post_init_tasks)
 
+    def _show_sync_loading(self, message="Syncing data..."):
+        if getattr(self, 'sync_loading_dialog', None) is None:
+            return
+        self.sync_loading_dialog.label.setText(message)
+        if not self.sync_loading_dialog.isVisible():
+            self.sync_loading_dialog.move(
+                self.geometry().center() - self.sync_loading_dialog.rect().center()
+            )
+            self.sync_loading_dialog.show()
+        QApplication.processEvents()
+
+    def _hide_sync_loading(self):
+        if getattr(self, 'sync_loading_dialog', None) is None:
+            return
+        if self._refresh_in_progress or self.active_runnables:
+            return
+        if hasattr(self, 'log_viewer_widget') and getattr(self.log_viewer_widget, '_history_loading', False):
+            return
+        self.sync_loading_dialog.hide()
+
     def post_init_tasks(self):
         """Perform non-blocking operations after UI layout is painted."""
+        self._show_sync_loading("Loading data...")
         if hasattr(self, 'log_viewer_widget'):
             self.log_viewer_widget.load_log_history()
+        if hasattr(self, 'monthly_report_widget'):
+            self.monthly_report_widget.set_log_data_store(getattr(self.log_viewer_widget, 'firebase_log_data_store', {}))
+        QTimer.singleShot(1500, self._hide_sync_loading)
 
     def apply_theme_state(self):
         title_color = "#ffffff" if self.is_dark_theme else "#1f2328"
@@ -1026,6 +1060,8 @@ class IBMiDashboard(QMainWindow):
         self.global_alerts.set_theme(self.is_dark_theme)
         self.refresh_widget.set_theme(self.is_dark_theme)
         self.log_viewer_widget.set_theme(self.is_dark_theme)
+        if hasattr(self, 'monthly_report_widget'):
+            self.monthly_report_widget.set_theme(self.is_dark_theme)
         self.theme_btn.setText("☀ Light Theme" if self.is_dark_theme else "🌙 Dark Theme")
         self.update_toggle_button_style()
 
@@ -1236,13 +1272,13 @@ class IBMiDashboard(QMainWindow):
             filtered_servers.append(srv)
 
         if sort_mode == 0:
-            filtered_servers.sort()
+            filtered_servers.sort(key=lambda s: self.card_widgets[s].server_name.lower())
         elif sort_mode == 1:
-            filtered_servers.sort(key=lambda s: self.card_widgets[s].current_cpu, reverse=True)
+            filtered_servers.sort(key=lambda s: (self.card_widgets[s].current_cpu, self.card_widgets[s].server_name.lower()), reverse=True)
         elif sort_mode == 2:
-            filtered_servers.sort(key=lambda s: self.card_widgets[s].current_asp, reverse=True)
+            filtered_servers.sort(key=lambda s: (self.card_widgets[s].current_asp, self.card_widgets[s].server_name.lower()), reverse=True)
         elif sort_mode == 3:
-            filtered_servers.sort(key=lambda s: (not self.card_widgets[s].current_is_critical, s))
+            filtered_servers.sort(key=lambda s: (not self.card_widgets[s].current_is_critical, self.card_widgets[s].server_name.lower()))
 
         layout_signature = (
             query,
@@ -1266,7 +1302,8 @@ class IBMiDashboard(QMainWindow):
         if group_mode == 0:
             groups = {}
             for srv in filtered_servers:
-                prefix = "".join([c for c in srv if not c.isdigit()]) or "OTHER"
+                display_name = self.card_widgets[srv].server_name
+                prefix = "".join([c for c in display_name if not c.isdigit()]) or "OTHER"
                 groups.setdefault(prefix, []).append(srv)
 
             if len(groups) <= 1:
@@ -1485,6 +1522,7 @@ class IBMiDashboard(QMainWindow):
         self.update_toggle_button_style()
 
         self.refresh_widget.set_active_state(True)
+        self._show_sync_loading("Syncing data...")
         self.fetch_data()
 
     def stop_monitoring(self):
@@ -1513,6 +1551,7 @@ class IBMiDashboard(QMainWindow):
         
         self.toggle_btn.setText("Start Auto-Refresh")
         self.update_toggle_button_style()
+        self._hide_sync_loading()
 
         self.refresh_widget.set_active_state(False)
         self.status_label.setText("Status: Monitoring stopped. Credentials unlocked for editing.")
@@ -1529,9 +1568,15 @@ class IBMiDashboard(QMainWindow):
             self._refresh_queued = True
             return
 
-        self.log_viewer_widget.active_lpars = []
+        if not getattr(self.log_viewer_widget, 'active_lpars', None):
+            self.log_viewer_widget.active_lpars = sorted({
+                self.log_viewer_widget._normalize_server_name(name)
+                for name in self.active_server_configs.keys()
+                if self.log_viewer_widget._normalize_server_name(name)
+            })
         self._refresh_in_progress = True
         self.timer.stop()
+        self._show_sync_loading("Syncing data...")
         self.last_refresh_started_at = time.monotonic()
 
         username = self.user_input.text().strip()
@@ -1628,6 +1673,8 @@ class IBMiDashboard(QMainWindow):
             self.log_viewer_widget.load_log_history()
             self.last_log_history_refresh = now
         self.refresh_widget.update_timestamp()
+        if not self._refresh_in_progress and not self.active_runnables:
+            self._hide_sync_loading()
 
         all_unreachable = all(
             data.get("status") == "OFFLINE" for data in self.latest_results_cache.values()

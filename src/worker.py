@@ -324,7 +324,29 @@ def save_single_lpar_log(sys_info, server_configs=None):
             except Exception:
                 existing_data = []
 
-        existing_data.append(entry)
+        replaced = False
+        for idx, existing_entry in enumerate(existing_data):
+            if not isinstance(existing_entry, dict):
+                continue
+            existing_records = existing_entry.get("records")
+            if not isinstance(existing_records, list):
+                continue
+            existing_ts = str(existing_entry.get("timestamp", ""))
+            existing_hour_key = existing_ts[:13] if len(existing_ts) >= 13 else ""
+            current_hour_key = timestamp_str[:13] if len(timestamp_str) >= 13 else ""
+            for rec in existing_records:
+                if not isinstance(rec, dict):
+                    continue
+                existing_name = str(rec.get("lpar") or rec.get("server") or rec.get("host_name") or rec.get("config_key") or "")
+                if existing_hour_key == current_hour_key and existing_name == str(server_name):
+                    existing_data[idx] = entry
+                    replaced = True
+                    break
+            if replaced:
+                break
+
+        if not replaced:
+            existing_data.append(entry)
 
         temp_path = None
         try:

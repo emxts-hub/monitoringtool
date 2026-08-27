@@ -5,6 +5,9 @@ import sys
 import json
 import csv
 import ast
+import re
+from calendar import monthrange
+from collections import defaultdict
 from datetime import datetime, timedelta, date
 import requests
 from PyQt6.QtCore import Qt, QTimer, QFileSystemWatcher, QObject, QRunnable, QThreadPool, QThread, pyqtSignal
@@ -22,11 +25,11 @@ FIREBASE_DB_URL = "https://as400logger-default-rtdb.asia-southeast1.firebasedata
 
 
 class FirebaseCleanupWorker(QRunnable):
-    """Deletes Firebase logs older than 30 days safely in background."""
+    """Deletes Firebase logs older than 35 days safely in background."""
     def run(self):
         try:
             firebase_url = f"{FIREBASE_DB_URL.rstrip('/')}/logs"
-            cutoff_time = datetime.now() - timedelta(days=30)
+            cutoff_time = datetime.now() - timedelta(days=35)
             response = requests.get(f"{firebase_url}.json", timeout=5)
             if response.status_code != 200 or not response.json():
                 return
@@ -125,7 +128,11 @@ class LogHistoryLoader(QRunnable):
     def __init__(self, target_dir, active_lpars, signals):
         super().__init__()
         self.target_dir = target_dir
-        self.active_lpars = sorted(active_lpars)
+        self.active_lpars = sorted({
+            LogViewerWidget._normalize_server_name(name)
+            for name in active_lpars
+            if LogViewerWidget._normalize_server_name(name)
+        })
         self.signals = signals
 
     def run(self):
@@ -188,7 +195,226 @@ class LogHistoryLoader(QRunnable):
         })
 
 
+class MonthlyReportWidget(QWidget):
+    """Monthly ASP/CPU average report example for the selected month."""
+
+    @staticmethod
+    def _normalize_server_name(value):
+        if value is None:
+            return ""
+        text = str(value).strip()
+        if not text or text.lower() in {"n/a", "none", "unknown"}:
+            return ""
+        if re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", text):
+            return ""
+        return text
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.is_dark_theme = True
+        self.log_data_store = {}
+
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(16, 16, 16, 16)
+        self.main_layout.setSpacing(12)
+
+        header = QHBoxLayout()
+        self.title_label = QLabel("IBM i Monthly ASP/CPU Report")
+        self.title_label.setFont(self._make_font("Segoe UI", 14, QFont.Weight.Bold))
+        self.title_label.setStyleSheet("color: #ffffff;")
+        header.addWidget(self.title_label)
+        header.addStretch()
+
+        self.month_combo = QComboBox()
+        self.month_combo.setFixedWidth(150)
+        self.month_combo.currentIndexChanged.connect(self.refresh_report)
+        header.addWidget(self.month_combo)
+        self.main_layout.addLayout(header)
+
+        self.summary_label = QLabel("Averages are calculated from the 1st to the last day of the selected month.")
+        self.summary_label.setFont(self._make_font("Segoe UI", 9, QFont.Weight.Normal))
+        self.summary_label.setStyleSheet("color: #8b949e;")
+        self.main_layout.addWidget(self.summary_label)
+
+        self.cpu_label = QLabel("CPU Usage")
+        self.cpu_label.setFont(self._make_font("Segoe UI", 11, QFont.Weight.Bold))
+        self.cpu_label.setStyleSheet("color: #ffffff;")
+        self.main_layout.addWidget(self.cpu_label)
+
+        self.cpu_report_table = QTableWidget()
+        self.cpu_report_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.cpu_report_table.setAlternatingRowColors(True)
+        self.cpu_report_table.verticalHeader().hide()
+        self.cpu_report_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.cpu_report_table.horizontalHeader().setStretchLastSection(True)
+        self.cpu_report_table.setMinimumHeight(260)
+        self.main_layout.addWidget(self.cpu_report_table)
+
+        self.asp_label = QLabel("ASP Usage")
+        self.asp_label.setFont(self._make_font("Segoe UI", 11, QFont.Weight.Bold))
+        self.asp_label.setStyleSheet("color: #ffffff;")
+        self.main_layout.addWidget(self.asp_label)
+
+        self.asp_report_table = QTableWidget()
+        self.asp_report_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.asp_report_table.setAlternatingRowColors(True)
+        self.asp_report_table.verticalHeader().hide()
+        self.asp_report_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.asp_report_table.horizontalHeader().setStretchLastSection(True)
+        self.asp_report_table.setMinimumHeight(260)
+        self.main_layout.addWidget(self.asp_report_table)
+
+        self.set_theme(self.is_dark_theme)
+        self.load_month_options()
+        self.refresh_report()
+
+    def _make_font(self, family="Segoe UI", point_size=9, weight=QFont.Weight.Normal):
+        font = QFont(family)
+        try:
+            size_value = int(point_size)
+        except (TypeError, ValueError):
+            size_value = 9
+        font.setPointSize(max(1, size_value))
+        font.setWeight(weight)
+        return font
+
+    def set_log_data_store(self, log_data_store):
+        self.log_data_store = log_data_store or {}
+        self.load_month_options()
+        self.refresh_report()
+
+    def set_theme(self, is_dark_theme):
+        self.is_dark_theme = is_dark_theme
+        bg = "#0d1117" if is_dark_theme else "#f6f8fa"
+        panel = "#161b22" if is_dark_theme else "#ffffff"
+        text = "#c9d1d9" if is_dark_theme else "#1f2328"
+        muted = "#8b949e" if is_dark_theme else "#57606a"
+        border = "#30363d" if is_dark_theme else "#d0d7de"
+        header = "#21262d" if is_dark_theme else "#f0f2f5"
+        self.setStyleSheet(f"QWidget {{ background-color: {bg}; color: {text}; }} QTableWidget {{ background-color: {panel}; border: 1px solid {border}; gridline-color: {border}; color: {text}; }} QHeaderView::section {{ background-color: {header}; color: {muted}; padding: 6px; border: 1px solid {border}; font-weight: bold; }} QLabel {{ color: {text}; }} QComboBox {{ background-color: {panel}; color: {text}; border: 1px solid {border}; padding: 4px 8px; }}")
+        self.title_label.setStyleSheet(f"color: {'#ffffff' if is_dark_theme else '#1f2328'};")
+        self.summary_label.setStyleSheet(f"color: {'#8b949e' if is_dark_theme else '#57606a'};")
+        self.cpu_label.setStyleSheet(f"color: {'#ffffff' if is_dark_theme else '#1f2328'};")
+        self.asp_label.setStyleSheet(f"color: {'#ffffff' if is_dark_theme else '#1f2328'};")
+
+    def load_month_options(self):
+        months = set()
+        for date_key in self.log_data_store.keys():
+            if len(date_key) >= 7 and date_key[4] == "-":
+                months.add(date_key[:7])
+        if not months:
+            months.add(datetime.now().strftime("%Y-%m"))
+        options = sorted(months, reverse=True)
+        self.month_combo.blockSignals(True)
+        self.month_combo.clear()
+        self.month_combo.addItems(options)
+        self.month_combo.blockSignals(False)
+        if self.month_combo.count() and self.month_combo.currentText() not in options:
+            self.month_combo.setCurrentIndex(0)
+
+    def refresh_report(self):
+        month_key = self.month_combo.currentText() or datetime.now().strftime("%Y-%m")
+        report = self._build_month_report(month_key)
+        self._render_metric_table(self.cpu_report_table, report, "CPU")
+        self._render_metric_table(self.asp_report_table, report, "ASP")
+        self.title_label.setText(f"IBM i Monthly ASP/CPU Report ({month_key})")
+
+    def _build_month_report(self, month_key):
+        if len(month_key) != 7:
+            return {"month": month_key, "days": [], "rows": []}
+
+        try:
+            year, month = map(int, month_key.split("-"))
+        except ValueError:
+            return {"month": month_key, "days": [], "rows": []}
+
+        last_day = monthrange(year, month)[1]
+        day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+
+        for date_key, batches in self.log_data_store.items():
+            if not date_key.startswith(f"{year:04d}-{month:02d}-"):
+                continue
+            day_num = int(date_key[-2:])
+            for _, records in batches:
+                for rec in records:
+                    if not isinstance(rec, dict):
+                        continue
+                    server = self._normalize_server_name(
+                        rec.get("host_name")
+                        or rec.get("server_name")
+                        or rec.get("lpar")
+                        or rec.get("server")
+                    )
+                    if not server:
+                        continue
+                    for metric_name in ("cpu", "asp"):
+                        value = rec.get(metric_name)
+                        if isinstance(value, (int, float)):
+                            day_values[server][metric_name][day_num].append(float(value))
+
+        rows = []
+        for server in sorted(day_values.keys()):
+            for metric_name, metric_label in (("cpu", "CPU"), ("asp", "ASP")):
+                day_map = {}
+                for day_num in range(1, last_day + 1):
+                    values = day_values.get(server, {}).get(metric_name, {}).get(day_num, [])
+                    if values:
+                        day_map[day_num] = round(sum(values) / len(values), 2)
+                if not day_map:
+                    continue
+                month_avg = round(sum(day_map.values()) / len(day_map), 2)
+                rows.append({
+                    "server": server,
+                    "metric": metric_label,
+                    "day_map": day_map,
+                    "month_avg": month_avg,
+                })
+
+        return {"month": month_key, "days": list(range(1, last_day + 1)), "rows": rows}
+
+    def _render_metric_table(self, table, report, metric_name):
+        days = report.get("days", [])
+        rows = [row for row in report.get("rows", []) if row.get("metric") == metric_name]
+        headers = ["Server"] + [str(day) for day in days] + ["Month Avg"]
+        table.setColumnCount(len(headers))
+        table.setHorizontalHeaderLabels(headers)
+        table.setRowCount(len(rows) or 1)
+
+        if not rows:
+            no_data = QTableWidgetItem("No monthly data available for this period")
+            no_data.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            table.setItem(0, 0, no_data)
+            for col in range(1, len(headers)):
+                table.setItem(0, col, QTableWidgetItem(""))
+            return
+
+        for row_idx, row in enumerate(rows):
+            table.setItem(row_idx, 0, self._table_item(row["server"], bold=True))
+            for day in days:
+                value = row["day_map"].get(day)
+                table.setItem(row_idx, 1 + (day - 1), self._table_item("N/A" if value is None else f"{value:.2f}%"))
+            table.setItem(row_idx, 1 + len(days), self._table_item(f"{row['month_avg']:.2f}%"))
+
+    def _table_item(self, text, bold=False):
+        item = QTableWidgetItem(str(text))
+        item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        if bold:
+            item.setFont(self._make_font("Segoe UI", 9, QFont.Weight.Bold))
+        return item
+
+
 class LogViewerWidget(QWidget):
+    @staticmethod
+    def _normalize_server_name(value):
+        if value is None:
+            return ""
+        text = str(value).strip()
+        if not text or text.lower() in {"n/a", "none", "unknown"}:
+            return ""
+        if re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", text):
+            return ""
+        return text
+
     HOURS = [
         "12AM", "1AM", "2AM", "3AM", "4AM", "5AM", "6AM", "7AM", "8AM", "9AM", "10AM", "11AM",
         "12PM", "1PM", "2PM", "3PM", "4PM", "5PM", "6PM", "7PM", "8PM", "9PM", "10PM", "11PM"
@@ -212,6 +438,8 @@ class LogViewerWidget(QWidget):
         super().__init__(parent)
         self.is_dark_theme = True
         self.log_data_store = {}
+        self.firebase_log_data_store = {}
+        self.monthly_report_widget = None
         self._processed_batches = set()
         self.active_lpars = []
         self.section_headers = []
@@ -383,16 +611,28 @@ class LogViewerWidget(QWidget):
 
         if date_key not in self.log_data_store:
             self.log_data_store[date_key] = []
+        if date_key not in self.firebase_log_data_store:
+            self.firebase_log_data_store[date_key] = []
 
         # Deduplicate incoming entries by timestamp and records
         batch_tuple = (ts, records)
         if batch_tuple not in self.log_data_store[date_key]:
             self.log_data_store[date_key].append(batch_tuple)
+        if batch_tuple not in self.firebase_log_data_store[date_key]:
+            self.firebase_log_data_store[date_key].append(batch_tuple)
+
+        if self.monthly_report_widget is not None:
+            self.monthly_report_widget.set_log_data_store(self.firebase_log_data_store)
 
         # Ensure dynamically registered LPARs from Firebase appear in active list
         for rec in records:
             if isinstance(rec, dict):
-                lpar_name = rec.get("lpar") or rec.get("server")
+                lpar_name = self._normalize_server_name(
+                    rec.get("host_name")
+                    or rec.get("server_name")
+                    or rec.get("lpar")
+                    or rec.get("server")
+                )
                 if lpar_name and lpar_name not in self.active_lpars:
                     self.active_lpars.append(lpar_name)
                     self.active_lpars.sort()
@@ -550,7 +790,14 @@ class LogViewerWidget(QWidget):
                     self.log_data_store[d_key].append(item)
 
         self._processed_batches.update(result.get("processed_batches", set()))
-        self.active_lpars = sorted(list(set(self.active_lpars + result.get("active_lpars", []))))
+        normalized_active = [
+            self._normalize_server_name(name)
+            for name in (self.active_lpars + result.get("active_lpars", []))
+        ]
+        self.active_lpars = sorted({name for name in normalized_active if name})
+
+        if self.monthly_report_widget is not None:
+            self.monthly_report_widget.set_log_data_store(self.firebase_log_data_store)
 
         current_selection = self.date_combo.currentText()
         self.date_combo.blockSignals(True)
@@ -588,7 +835,11 @@ class LogViewerWidget(QWidget):
 
     def load_log_history(self, active_server_configs=None):
         if active_server_configs is not None:
-            self.active_lpars = sorted(list(active_server_configs.keys()))
+            self.active_lpars = sorted({
+                self._normalize_server_name(name)
+                for name in active_server_configs.keys()
+                if self._normalize_server_name(name)
+            })
         elif not self.active_lpars:
             self.active_lpars = []
             self._update_last_refresh_timestamp()
@@ -629,6 +880,11 @@ class LogViewerWidget(QWidget):
         self.populate_views()
 
     def populate_views(self):
+        self.active_lpars = [
+            name for name in self.active_lpars
+            if self._normalize_server_name(name)
+        ]
+
         selected_date = self.date_combo.currentText()
         if not selected_date:
             selected_date = date.today().strftime("%Y-%m-%d")
@@ -659,7 +915,14 @@ class LogViewerWidget(QWidget):
             for rec in records:
                 if not isinstance(rec, dict):
                     continue
-                lpar = rec.get("lpar", rec.get("server", ""))
+                lpar = self._normalize_server_name(
+                    rec.get("host_name")
+                    or rec.get("server_name")
+                    or rec.get("lpar")
+                    or rec.get("server")
+                )
+                if not lpar:
+                    continue
                 if lpar in asp_matrix:
                     asp_val = rec.get("asp")
                     if isinstance(asp_val, (int, float)):
@@ -739,19 +1002,39 @@ class LogViewerWidget(QWidget):
         for ts, records in reversed(day_batches):
             sorted_batch_records = sorted(
                 records,
-                key=lambda r: lpar_order.get(r.get("lpar", r.get("server", "")), 999)
+                key=lambda r: lpar_order.get(
+                    self._normalize_server_name(
+                        r.get("host_name")
+                        or r.get("server_name")
+                        or r.get("lpar")
+                        or r.get("server")
+                    ),
+                    999,
+                )
             )
             for rec in sorted_batch_records:
                 if not isinstance(rec, dict):
                     continue
-                lpar = rec.get("lpar", rec.get("server", ""))
+                lpar = self._normalize_server_name(
+                    rec.get("host_name")
+                    or rec.get("server_name")
+                    or rec.get("lpar")
+                    or rec.get("server")
+                )
+                if not lpar:
+                    continue
                 if lpar in lpar_order or not lpar_order:
                     flat_records.append((ts, rec))
 
         self.stream_table.setRowCount(len(flat_records))
 
         for row, (ts, rec) in enumerate(flat_records):
-            lpar = rec.get("lpar", rec.get("server", ""))
+            lpar = self._normalize_server_name(
+                rec.get("host_name")
+                or rec.get("server_name")
+                or rec.get("lpar")
+                or rec.get("server")
+            )
             ip = rec.get("ip", "N/A")
             cpu = rec.get("cpu", "N/A")
             asp = rec.get("asp", "N/A")
