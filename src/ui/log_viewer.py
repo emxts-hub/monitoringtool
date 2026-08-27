@@ -52,12 +52,12 @@ class FirebaseCleanupWorker(QRunnable):
 
 
 class FirebaseInitialFetchWorker(QThread):
-    """Background worker that fetches historical Firebase logs at launch via Signals."""
+    """Background worker that fetches recent Firebase logs at launch via Signals."""
     log_fetched = pyqtSignal(dict)
 
     def run(self):
         try:
-            url = f"{FIREBASE_DB_URL.rstrip('/')}/logs.json"
+            url = f"{FIREBASE_DB_URL.rstrip('/')}/logs.json?orderBy=\"$key\"&limitToLast=200"
             response = requests.get(url, timeout=10)
             if response.status_code == 200 and response.json():
                 data = response.json()
@@ -74,46 +74,40 @@ class FirebaseInitialFetchWorker(QThread):
 
 
 class FirebaseStreamWorker(QThread):
-    """Background listener reading real-time SSE stream events from Firebase."""
+    """Polls the recent Firebase log slice so the live viewer updates on every sync without loading the whole history."""
     log_received = pyqtSignal(dict)
 
-    def __init__(self, firebase_db_url):
+    def __init__(self, firebase_db_url, poll_interval_seconds=3):
         super().__init__()
-        self.url = f"{firebase_db_url.rstrip('/')}/logs.json"
+        self.url = f"{firebase_db_url.rstrip('/')}/logs.json?orderBy=\"$key\"&limitToLast=200"
+        self.poll_interval_seconds = max(1, int(poll_interval_seconds))
         self._is_running = True
 
     def run(self):
-        headers = {"Accept": "text/event-stream"}
-        try:
-            response = requests.get(self.url, headers=headers, stream=True, timeout=60)
-            event_type = None
-
-            for line in response.iter_lines():
-                if not self._is_running:
-                    break
-
-                if line:
-                    decoded = line.decode("utf-8")
-                    if decoded.startswith("event:"):
-                        event_type = decoded.split(":", 1)[1].strip()
-                    elif decoded.startswith("data:"):
-                        data_str = decoded.split(":", 1)[1].strip()
-                        if event_type in ["put", "patch"] and data_str != "null":
-                            try:
-                                payload = json.loads(data_str)
-                                if "data" in payload:
-                                    node_data = payload["data"]
-                                    if isinstance(node_data, dict):
-                                        if "timestamp" in node_data or "records" in node_data or "lpar" in node_data:
-                                            self.log_received.emit(node_data)
-                                        else:
-                                            for item in node_data.values():
-                                                if isinstance(item, dict):
-                                                    self.log_received.emit(item)
-                            except Exception as e:
-                                print(f"Stream parse error: {e}")
-        except Exception as e:
-            print(f"Firebase connection error: {e}")
+        while self._is_running:
+            try:
+                response = requests.get(self.url, timeout=10)
+                if response.status_code != 200:
+                    self.msleep(self.poll_interval_seconds * 1000)
+                    continue
+                data = response.json()
+                if isinstance(data, dict):
+                    for node in data.values():
+                        if isinstance(node, dict):
+                            if "timestamp" in node or "records" in node or "lpar" in node:
+                                self.log_received.emit(node)
+                            else:
+                                for item in node.values():
+                                    if isinstance(item, dict):
+                                        self.log_received.emit(item)
+                elif isinstance(data, list):
+                    for node in data:
+                        if isinstance(node, dict):
+                            if "timestamp" in node or "records" in node or "lpar" in node:
+                                self.log_received.emit(node)
+            except Exception as e:
+                print(f"Firebase poll error: {e}")
+            self.msleep(self.poll_interval_seconds * 1000)
 
     def stop(self):
         self._is_running = False
@@ -213,6 +207,10 @@ class MonthlyReportWidget(QWidget):
         super().__init__(parent)
         self.is_dark_theme = True
         self.log_data_store = {}
+        self._refresh_timer = QTimer(self)
+        self._refresh_timer.setSingleShot(True)
+        self._refresh_timer.setInterval(250)
+        self._refresh_timer.timeout.connect(self.refresh_report)
 
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(16, 16, 16, 16)
@@ -281,7 +279,9 @@ class MonthlyReportWidget(QWidget):
     def set_log_data_store(self, log_data_store):
         self.log_data_store = log_data_store or {}
         self.load_month_options()
-        self.refresh_report()
+        if not self.isVisible():
+            return
+        self._refresh_timer.start()
 
     def set_theme(self, is_dark_theme):
         self.is_dark_theme = is_dark_theme
@@ -313,6 +313,8 @@ class MonthlyReportWidget(QWidget):
             self.month_combo.setCurrentIndex(0)
 
     def refresh_report(self):
+        if not self.isVisible():
+            return
         month_key = self.month_combo.currentText() or datetime.now().strftime("%Y-%m")
         report = self._build_month_report(month_key)
         self._render_metric_table(self.cpu_report_table, report, "CPU")
@@ -441,6 +443,9 @@ class LogViewerWidget(QWidget):
         self.firebase_log_data_store = {}
         self.monthly_report_widget = None
         self._processed_batches = set()
+        self.max_history_days = 45
+        self.max_batches_per_day = 300
+        self.max_total_batches = 1200
         self.active_lpars = []
         self.section_headers = []
         self._history_loading = False
@@ -589,6 +594,52 @@ class LogViewerWidget(QWidget):
         self.firebase_thread.log_received.connect(self._on_firebase_log_received)
         self.firebase_thread.start()
 
+    def _prune_log_store(self, store):
+        if not store:
+            return
+        while len(store) > self.max_history_days:
+            oldest_key = min(store.keys())
+            del store[oldest_key]
+        for date_key, batches in list(store.items()):
+            if len(batches) > self.max_batches_per_day:
+                store[date_key] = batches[-self.max_batches_per_day:]
+        total_batches = sum(len(batches) for batches in store.values())
+        while total_batches > self.max_total_batches:
+            oldest_key = min(store.keys())
+            if not store.get(oldest_key):
+                del store[oldest_key]
+                total_batches = sum(len(batches) for batches in store.values())
+                continue
+            store[oldest_key] = store[oldest_key][1:]
+            total_batches = sum(len(batches) for batches in store.values())
+
+    def _same_hourly_server_record(self, ts, records, server_name, target_hour):
+        if not ts or not server_name:
+            return False
+        try:
+            if ts[:13] != target_hour:
+                return False
+        except Exception:
+            return False
+        for rec in records:
+            if not isinstance(rec, dict):
+                continue
+            candidate = str(
+                rec.get("config_key")
+                or rec.get("host_name")
+                or rec.get("server_name")
+                or rec.get("lpar")
+                or rec.get("server")
+                or ""
+            ).strip()
+            if not candidate:
+                continue
+            if self._normalize_server_name(candidate) == self._normalize_server_name(server_name):
+                return True
+            if candidate == str(server_name):
+                return True
+        return False
+
     def _on_firebase_log_received(self, log_entry):
         """Processes and standardizes incoming log records from Firebase."""
         if not isinstance(log_entry, dict):
@@ -597,7 +648,6 @@ class LogViewerWidget(QWidget):
         ts = log_entry.get("timestamp", "")
         records = log_entry.get("records", [])
 
-        # Standardize nested/single record structures
         if not records and ("lpar" in log_entry or "server" in log_entry):
             records = [log_entry]
 
@@ -614,12 +664,44 @@ class LogViewerWidget(QWidget):
         if date_key not in self.firebase_log_data_store:
             self.firebase_log_data_store[date_key] = []
 
-        # Deduplicate incoming entries by timestamp and records
         batch_tuple = (ts, records)
+        server_name = None
+        for rec in records:
+            if not isinstance(rec, dict):
+                continue
+            candidate = str(
+                rec.get("config_key")
+                or rec.get("host_name")
+                or rec.get("server_name")
+                or rec.get("lpar")
+                or rec.get("server")
+                or ""
+            ).strip()
+            if candidate:
+                server_name = candidate
+                break
+
+        if date_key not in self.log_data_store:
+            self.log_data_store[date_key] = []
         if batch_tuple not in self.log_data_store[date_key]:
             self.log_data_store[date_key].append(batch_tuple)
-        if batch_tuple not in self.firebase_log_data_store[date_key]:
+
+        if date_key not in self.firebase_log_data_store:
+            self.firebase_log_data_store[date_key] = []
+        if server_name and len(ts) >= 13:
+            target_hour = ts[:13]
+            existing_same_hour = False
+            for existing_ts, existing_records in self.firebase_log_data_store[date_key]:
+                if self._same_hourly_server_record(existing_ts, existing_records, server_name, target_hour):
+                    existing_same_hour = True
+                    break
+            if not existing_same_hour and batch_tuple not in self.firebase_log_data_store[date_key]:
+                self.firebase_log_data_store[date_key].append(batch_tuple)
+        elif batch_tuple not in self.firebase_log_data_store[date_key]:
             self.firebase_log_data_store[date_key].append(batch_tuple)
+
+        self._prune_log_store(self.log_data_store)
+        self._prune_log_store(self.firebase_log_data_store)
 
         if self.monthly_report_widget is not None:
             self.monthly_report_widget.set_log_data_store(self.firebase_log_data_store)
@@ -903,6 +985,7 @@ class LogViewerWidget(QWidget):
 
         day_batches = self.log_data_store.get(selected_date, [])
 
+        seen_usage_slots = set()
         for ts, records in day_batches:
             if not ts or len(ts) < 13:
                 continue
@@ -923,14 +1006,19 @@ class LogViewerWidget(QWidget):
                 )
                 if not lpar:
                     continue
+                usage_key = (lpar, hour_idx)
+                if usage_key in seen_usage_slots:
+                    continue
                 if lpar in asp_matrix:
                     asp_val = rec.get("asp")
                     if isinstance(asp_val, (int, float)):
                         asp_matrix[lpar][hour_idx] = f"{asp_val:.1f}%"
+                        seen_usage_slots.add((lpar, hour_idx))
 
                     cpu_val = rec.get("cpu")
                     if isinstance(cpu_val, (int, float)):
                         cpu_matrix[lpar][hour_idx] = f"{cpu_val:.1f}%"
+                        seen_usage_slots.add((lpar, hour_idx))
 
         self._fill_matrix(self.asp_table, asp_matrix)
         self._fill_matrix(self.cpu_table, cpu_matrix)

@@ -996,10 +996,6 @@ class IBMiDashboard(QMainWindow):
         self.tabs = QTabWidget()
         self.setCentralWidget(self.tabs)
 
-        self.sync_loading_dialog = ThemeLoadingDialog(self)
-        self.sync_loading_dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
-        self.sync_loading_dialog.hide()
-
         self.live_monitor_widget = QWidget()
         self.init_live_monitor_ui()
         self.tabs.addTab(self.live_monitor_widget, "📊 Live Monitor")
@@ -1025,24 +1021,17 @@ class IBMiDashboard(QMainWindow):
         QTimer.singleShot(300, self.post_init_tasks)
 
     def _show_sync_loading(self, message="Syncing data..."):
-        if getattr(self, 'sync_loading_dialog', None) is None:
-            return
-        self.sync_loading_dialog.label.setText(message)
-        if not self.sync_loading_dialog.isVisible():
-            self.sync_loading_dialog.move(
-                self.geometry().center() - self.sync_loading_dialog.rect().center()
-            )
-            self.sync_loading_dialog.show()
+        self.status_label.setText(f"Status: {message}")
+        self.status_label.setStyleSheet("color: #8b949e; font-size: 11px; background-color: transparent;")
         QApplication.processEvents()
 
     def _hide_sync_loading(self):
-        if getattr(self, 'sync_loading_dialog', None) is None:
-            return
-        if self._refresh_in_progress or self.active_runnables:
-            return
-        if hasattr(self, 'log_viewer_widget') and getattr(self.log_viewer_widget, '_history_loading', False):
-            return
-        self.sync_loading_dialog.hide()
+        if self.is_monitoring:
+            self.status_label.setText("Status: Live Metrics Updated. Auto-refresh in 30s...")
+            self.status_label.setStyleSheet("color: #8b949e; font-size: 11px; background-color: transparent;")
+        else:
+            self.status_label.setText("Status: Monitoring stopped. Credentials unlocked for editing.")
+            self.status_label.setStyleSheet("color: #8b949e; font-size: 11px; background-color: transparent;")
 
     def post_init_tasks(self):
         """Perform non-blocking operations after UI layout is painted."""

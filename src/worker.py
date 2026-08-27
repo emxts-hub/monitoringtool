@@ -285,16 +285,18 @@ def save_single_lpar_log(sys_info, server_configs=None):
                     down_services.append(name)
 
     services_down_val = down_services if down_services else "None"
-    server_name = sys_info.get("server") or sys_info.get("host_name") or sys_info.get("config_key")
-    if sys_info.get("host_name") and server_name == sys_info.get("config_key"):
-        server_name = sys_info.get("host_name")
+    config_key = sys_info.get("config_key") or sys_info.get("server") or sys_info.get("host_name") or "unknown"
+    resolved_name = sys_info.get("host_name") or sys_info.get("server") or config_key
+    server_name = resolved_name if str(resolved_name).strip() and not re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", str(resolved_name).strip()) else config_key
+    server_name = str(server_name).strip() or config_key
 
-    cfg = configs.get(server_name, configs.get(sys_info.get("config_key"), {}))
+    cfg = configs.get(config_key, configs.get(str(sys_info.get("server") or sys_info.get("host_name") or config_key), {}))
     ip_addr = cfg.get("host", "N/A") if isinstance(cfg, dict) else str(cfg)
 
     record = {
         "entry_id": uuid.uuid4().hex,
         "timestamp": timestamp_str,
+        "config_key": str(config_key),
         "lpar": server_name,
         "server": server_name,
         "ip": ip_addr,
@@ -324,7 +326,7 @@ def save_single_lpar_log(sys_info, server_configs=None):
             except Exception:
                 existing_data = []
 
-        replaced = False
+        existing_hour_match = False
         for idx, existing_entry in enumerate(existing_data):
             if not isinstance(existing_entry, dict):
                 continue
@@ -337,15 +339,21 @@ def save_single_lpar_log(sys_info, server_configs=None):
             for rec in existing_records:
                 if not isinstance(rec, dict):
                     continue
-                existing_name = str(rec.get("lpar") or rec.get("server") or rec.get("host_name") or rec.get("config_key") or "")
-                if existing_hour_key == current_hour_key and existing_name == str(server_name):
-                    existing_data[idx] = entry
-                    replaced = True
+                existing_identity = str(
+                    rec.get("config_key")
+                    or rec.get("lpar")
+                    or rec.get("server")
+                    or rec.get("host_name")
+                    or rec.get("server_name")
+                    or ""
+                )
+                if existing_hour_key == current_hour_key and existing_identity == str(config_key):
+                    existing_hour_match = True
                     break
-            if replaced:
+            if existing_hour_match:
                 break
 
-        if not replaced:
+        if not existing_hour_match:
             existing_data.append(entry)
 
         temp_path = None
@@ -359,7 +367,7 @@ def save_single_lpar_log(sys_info, server_configs=None):
                 os.remove(temp_path)
         cleanup_old_logs(days_to_keep=30)
 
-    # 2. Sync to Firebase
+    # 2. Sync to Firebase: keep raw log entries for every refresh so the real-time log stream updates continuously.
     try:
         url = f"{FIREBASE_DB_URL.rstrip('/')}/logs.json"
         requests.post(url, json=entry, timeout=5)
