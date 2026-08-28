@@ -397,7 +397,7 @@ class SubsystemBadge(QLabel):
 
 
 class SubsystemGridWidget(QWidget):
-    def __init__(self, server_name, active_subsystems, on_expand_callback=None, parent=None):
+    def __init__(self, server_name, active_subsystems, expected_key=None, on_expand_callback=None, parent=None):
         super().__init__(parent)
         self.server_name = server_name
         self.on_expand_callback = on_expand_callback
@@ -405,9 +405,10 @@ class SubsystemGridWidget(QWidget):
         def normalize_name(name):
             return str(name).strip().upper() if name is not None else ""
 
+        expected_key = expected_key or server_name
         self.expected_subs = [
             normalize_name(item)
-            for item in EXPECTED_SUBSYSTEMS.get(server_name, [])
+            for item in EXPECTED_SUBSYSTEMS.get(expected_key, [])
         ]
 
         names = [
@@ -440,7 +441,7 @@ class SubsystemGridWidget(QWidget):
         h_layout.setSpacing(8)
 
         header_color = "#3fb950" if self.all_healthy else "#f85149"
-        self.header_label = QLabel(f"● {self.expected_running_count} / {self.actual_running_count} Active")
+        self.header_label = QLabel(f"● {self.expected_running_count} / {expected_total_count} Active")
         self.header_label.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
         self.header_label.setStyleSheet(f"color: {header_color}; background: transparent;")
         h_layout.addWidget(self.header_label)

@@ -1,0 +1,36 @@
+#define AppName "WinMacOS"
+#define AppVersion "1.2.1"
+#define AppPublisher "emxts-hub"
+#define AppExeName "WinMacOS.exe"
+
+[Setup]
+AppId={{B9B4F2A1-5F7D-4D5E-A9CF-7F50A2D6B1A8}
+AppName={#AppName}
+AppVersion={#AppVersion}
+AppPublisher={#AppPublisher}
+DefaultDirName={autopf}\{#AppName}
+DefaultGroupName={#AppName}
+OutputDir=dist
+OutputBaseFilename=WinMacOS-Setup
+Compression=lzma
+SolidCompression=yes
+WizardStyle=modern
+PrivilegesRequired=lowest
+ArchitecturesInstallIn64BitMode=x64compatible
+UninstallDisplayIcon={app}\{#AppExeName}
+
+[Files]
+Source: "dist\{#AppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+; For a private local test build, uncomment the next line and place the JSON
+; beside this .iss file. Never commit or upload the credential file.
+Source: "service-account.json"; DestDir: "{app}"; Flags: ignoreversion
+
+[Icons]
+Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"
+Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
+
+[Tasks]
+Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional icons:"
+
+[Run]
+Filename: "{app}\{#AppExeName}"; Description: "Launch {#AppName}"; Flags: nowait postinstall skipifsilent

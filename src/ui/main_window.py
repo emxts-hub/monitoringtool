@@ -5,7 +5,7 @@ import threading
 import time
 from typing import cast
 from collections import deque
-from config import APP_VERSION
+from config import APP_VERSION, APP_NAME
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -20,7 +20,8 @@ from PyQt6.QtWidgets import (
 )
 
 from worker import SingleLparRunnable
-from ui.log_viewer import LogViewerWidget, MonthlyReportWidget
+from ui.log_viewer import LogViewerWidget
+from ui.monthly_report import MonthlyReportWidget
 from ui.widgets import RefreshStatusWidget, StatusBadgesWidget, SubsystemGridWidget, ThemeLoadingDialog
 from dialogs import LparSettingsDialog
 from config import SERVER_CONFIGS, EXPECTED_SUBSYSTEMS, get_resource_path
@@ -112,9 +113,10 @@ class DualSparklineWidget(QWidget):
 
 
 class SubsystemDetailDialog(QDialog):
-    def __init__(self, server_name, subsystem_data=None, timestamp_str="", parent=None):
+    def __init__(self, server_name, subsystem_data=None, expected_key=None, timestamp_str="", parent=None):
         super().__init__(parent)
         self.server_name = server_name
+        self.expected_key = expected_key or server_name
         self.subsystem_data = subsystem_data or []
         self.setWindowTitle(f"{server_name} - Detailed Subsystem Status")
         self.resize(850, 520)
@@ -193,7 +195,7 @@ class SubsystemDetailDialog(QDialog):
         self.exec()
 
     def populate_subsystem_details(self):
-        expected_list = EXPECTED_SUBSYSTEMS.get(self.server_name, [])
+        expected_list = EXPECTED_SUBSYSTEMS.get(self.expected_key, [])
         active_dict = {}
 
         for sub in self.subsystem_data:
@@ -345,6 +347,7 @@ class LparCardWidget(QFrame):
         self.current_jobs = 0
         self.current_subsystems_data = []
         self.current_ports_data = []
+        self.config_key = server_name
         self.detail_expanded = True
         self.last_success_ts = None
         self.retry_count = 0
@@ -474,6 +477,7 @@ class LparCardWidget(QFrame):
         dialog = SubsystemDetailDialog(
             server_name=self.server_name, 
             subsystem_data=self.current_subsystems_data, 
+            expected_key=self.config_key,
             parent=self
         )
         dialog.show_centered()
@@ -602,6 +606,7 @@ class LparCardWidget(QFrame):
         sub_widget = SubsystemGridWidget(
             server_name=self.server_name,
             active_subsystems=subsystems,
+            expected_key=self.config_key,
             on_expand_callback=self.open_subsystem_modal,
             parent=self
         )
@@ -684,6 +689,7 @@ class LparCardWidget(QFrame):
         self._last_update_signature = signature
 
         self.current_status = status
+        self.config_key = str(data.get("config_key") or self.config_key).strip()
         self.current_cpu = cpu
         self.current_asp = asp
         self.current_jobs = jobs
@@ -958,7 +964,7 @@ class IBMiDashboard(QMainWindow):
     def __init__(self, version_str: str = APP_VERSION):
         super().__init__()
         self.version_str = version_str
-        self.setWindowTitle(f"LPAR Manager - v{version_str}")
+        self.setWindowTitle(f"{APP_NAME} - v{version_str}")
         self.setGeometry(100, 100, 900, 600)
 
         app = QApplication.instance()
@@ -1005,8 +1011,15 @@ class IBMiDashboard(QMainWindow):
         self.tabs.addTab(self.log_viewer_widget, "📜 Log Viewer History")
 
         self.monthly_report_widget = MonthlyReportWidget()
-        self.monthly_report_widget.set_log_data_store(self.log_viewer_widget.firebase_log_data_store)
+        self.monthly_report_widget.set_log_data_store(
+            self.log_viewer_widget.log_data_store,
+            source_mode="local"
+        )
         self.log_viewer_widget.monthly_report_widget = self.monthly_report_widget
+        self.monthly_report_widget.parent_log_viewer = self.log_viewer_widget
+        self.monthly_report_widget.set_last_sync_timestamp(
+            self.log_viewer_widget._last_online_sync
+        )
         self.monthly_report_widget.set_theme(self.is_dark_theme)
         self.tabs.addTab(self.monthly_report_widget, "📈 Monthly ASP/CPU Report")
 
@@ -1038,8 +1051,6 @@ class IBMiDashboard(QMainWindow):
         self._show_sync_loading("Loading data...")
         if hasattr(self, 'log_viewer_widget'):
             self.log_viewer_widget.load_log_history()
-        if hasattr(self, 'monthly_report_widget'):
-            self.monthly_report_widget.set_log_data_store(getattr(self.log_viewer_widget, 'firebase_log_data_store', {}))
         QTimer.singleShot(1500, self._hide_sync_loading)
 
     def apply_theme_state(self):
@@ -1059,7 +1070,7 @@ class IBMiDashboard(QMainWindow):
         main_layout.setContentsMargins(14, 14, 14, 14)
         main_layout.setSpacing(4)
 
-        self.header_title = QLabel(f"Dashboard Active (v{self.version_str})")
+        self.header_title = QLabel(f"Dashboard Active")
         self.header_title.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
         main_layout.addWidget(self.header_title)
 

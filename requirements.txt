@@ -3,3 +3,4 @@ pyqt6
 requests
 paramiko
 pyodbc
+firebase-admin

@@ -15,9 +15,7 @@ import requests
 import pyodbc
 from PyQt6.QtCore import QRunnable, QObject, pyqtSignal, QThreadPool
 from config import SERVER_CONFIGS, MONITORED_PORTS, EXPECTED_PORTS, get_logs_dir, load_email_alerts, get_resource_path
-
-# Firebase Realtime Database Endpoint
-FIREBASE_DB_URL = "https://as400logger-default-rtdb.asia-southeast1.firebasedatabase.app"
+from firebase_store import write_log
 
 _LOG_WRITE_LOCK = threading.Lock()
 _ALERT_STATE_LOCK = threading.Lock()
@@ -367,12 +365,11 @@ def save_single_lpar_log(sys_info, server_configs=None):
                 os.remove(temp_path)
         cleanup_old_logs(days_to_keep=30)
 
-    # 2. Sync to Firebase: keep raw log entries for every refresh so the real-time log stream updates continuously.
+    # 2. Write new log entries to Firestore.
     try:
-        url = f"{FIREBASE_DB_URL.rstrip('/')}/logs.json"
-        requests.post(url, json=entry, timeout=5)
+        write_log(entry)
     except Exception as e:
-        print(f"Failed to push entry to Firebase: {e}")
+        print(f"Failed to push entry to Firestore: {e}")
 
 
 class LparWorkerSignals(QObject):

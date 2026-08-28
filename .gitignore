@@ -2,9 +2,11 @@ __pycache__/
 *.pyc
 *.enc
 *.key
+service-account.json
 *.html
 .env
 build/
 dist/
 logs/
 *.spec
+.venv
