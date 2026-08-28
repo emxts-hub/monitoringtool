@@ -4,7 +4,7 @@ import json
 from datetime import datetime, timezone
 
 APP_NAME = "IBMi_Dashboard"
-APP_VERSION = "3.0.0"
+APP_VERSION = "3.0.1"
 
 # By default, disable the hard expiration gate. Set this explicitly only when
 # you intentionally want to enforce a release cutoff for a specific build.
