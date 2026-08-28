@@ -31492,3 +31492,171 @@ TypeError: arguments did not match any overloaded call:
   drawLine(self, x1: int, y1: int, x2: int, y2: int): argument 1 has unexpected type 'float'
   drawLine(self, p1: QPoint, p2: QPoint): argument 1 has unexpected type 'float'
   drawLine(self, p1: QPointF, p2: QPointF): argument 1 has unexpected type 'float'
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 89, in paintEvent
+    painter.drawLine(x, top, x, bottom)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  drawLine(self, l: QLineF): argument 1 has unexpected type 'float'
+  drawLine(self, line: QLine): argument 1 has unexpected type 'float'
+  drawLine(self, x1: int, y1: int, x2: int, y2: int): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPoint, p2: QPoint): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPointF, p2: QPointF): argument 1 has unexpected type 'float'
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 89, in paintEvent
+    painter.drawLine(x, top, x, bottom)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  drawLine(self, l: QLineF): argument 1 has unexpected type 'float'
+  drawLine(self, line: QLine): argument 1 has unexpected type 'float'
+  drawLine(self, x1: int, y1: int, x2: int, y2: int): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPoint, p2: QPoint): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPointF, p2: QPointF): argument 1 has unexpected type 'float'
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 89, in paintEvent
+    painter.drawLine(x, top, x, bottom)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  drawLine(self, l: QLineF): argument 1 has unexpected type 'float'
+  drawLine(self, line: QLine): argument 1 has unexpected type 'float'
+  drawLine(self, x1: int, y1: int, x2: int, y2: int): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPoint, p2: QPoint): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPointF, p2: QPointF): argument 1 has unexpected type 'float'
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 89, in paintEvent
+    painter.drawLine(x, top, x, bottom)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  drawLine(self, l: QLineF): argument 1 has unexpected type 'float'
+  drawLine(self, line: QLine): argument 1 has unexpected type 'float'
+  drawLine(self, x1: int, y1: int, x2: int, y2: int): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPoint, p2: QPoint): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPointF, p2: QPointF): argument 1 has unexpected type 'float'
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 89, in paintEvent
+    painter.drawLine(x, top, x, bottom)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  drawLine(self, l: QLineF): argument 1 has unexpected type 'float'
+  drawLine(self, line: QLine): argument 1 has unexpected type 'float'
+  drawLine(self, x1: int, y1: int, x2: int, y2: int): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPoint, p2: QPoint): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPointF, p2: QPointF): argument 1 has unexpected type 'float'
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 89, in paintEvent
+    painter.drawLine(x, top, x, bottom)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  drawLine(self, l: QLineF): argument 1 has unexpected type 'float'
+  drawLine(self, line: QLine): argument 1 has unexpected type 'float'
+  drawLine(self, x1: int, y1: int, x2: int, y2: int): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPoint, p2: QPoint): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPointF, p2: QPointF): argument 1 has unexpected type 'float'
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 89, in paintEvent
+    painter.drawLine(x, top, x, bottom)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  drawLine(self, l: QLineF): argument 1 has unexpected type 'float'
+  drawLine(self, line: QLine): argument 1 has unexpected type 'float'
+  drawLine(self, x1: int, y1: int, x2: int, y2: int): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPoint, p2: QPoint): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPointF, p2: QPointF): argument 1 has unexpected type 'float'
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 89, in paintEvent
+    painter.drawLine(x, top, x, bottom)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  drawLine(self, l: QLineF): argument 1 has unexpected type 'float'
+  drawLine(self, line: QLine): argument 1 has unexpected type 'float'
+  drawLine(self, x1: int, y1: int, x2: int, y2: int): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPoint, p2: QPoint): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPointF, p2: QPointF): argument 1 has unexpected type 'float'
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 89, in paintEvent
+    painter.drawLine(x, top, x, bottom)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  drawLine(self, l: QLineF): argument 1 has unexpected type 'float'
+  drawLine(self, line: QLine): argument 1 has unexpected type 'float'
+  drawLine(self, x1: int, y1: int, x2: int, y2: int): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPoint, p2: QPoint): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPointF, p2: QPointF): argument 1 has unexpected type 'float'
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 89, in paintEvent
+    painter.drawLine(x, top, x, bottom)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  drawLine(self, l: QLineF): argument 1 has unexpected type 'float'
+  drawLine(self, line: QLine): argument 1 has unexpected type 'float'
+  drawLine(self, x1: int, y1: int, x2: int, y2: int): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPoint, p2: QPoint): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPointF, p2: QPointF): argument 1 has unexpected type 'float'
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 89, in paintEvent
+    painter.drawLine(x, top, x, bottom)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  drawLine(self, l: QLineF): argument 1 has unexpected type 'float'
+  drawLine(self, line: QLine): argument 1 has unexpected type 'float'
+  drawLine(self, x1: int, y1: int, x2: int, y2: int): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPoint, p2: QPoint): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPointF, p2: QPointF): argument 1 has unexpected type 'float'
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 89, in paintEvent
+    painter.drawLine(x, top, x, bottom)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  drawLine(self, l: QLineF): argument 1 has unexpected type 'float'
+  drawLine(self, line: QLine): argument 1 has unexpected type 'float'
+  drawLine(self, x1: int, y1: int, x2: int, y2: int): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPoint, p2: QPoint): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPointF, p2: QPointF): argument 1 has unexpected type 'float'
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 89, in paintEvent
+    painter.drawLine(x, top, x, bottom)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  drawLine(self, l: QLineF): argument 1 has unexpected type 'float'
+  drawLine(self, line: QLine): argument 1 has unexpected type 'float'
+  drawLine(self, x1: int, y1: int, x2: int, y2: int): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPoint, p2: QPoint): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPointF, p2: QPointF): argument 1 has unexpected type 'float'
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 89, in paintEvent
+    painter.drawLine(x, top, x, bottom)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  drawLine(self, l: QLineF): argument 1 has unexpected type 'float'
+  drawLine(self, line: QLine): argument 1 has unexpected type 'float'
+  drawLine(self, x1: int, y1: int, x2: int, y2: int): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPoint, p2: QPoint): argument 1 has unexpected type 'float'
+  drawLine(self, p1: QPointF, p2: QPointF): argument 1 has unexpected type 'float'
