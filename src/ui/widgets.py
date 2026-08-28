@@ -1,6 +1,6 @@
 from collections import deque
 from PyQt6.QtCore import Qt, QRectF, QTimer, QDateTime, QPointF
-from PyQt6.QtGui import QColor, QFont, QPainter, QPen, QCursor, QPolygonF, QBrush
+from PyQt6.QtGui import QColor, QFont, QPainter, QPen, QCursor, QPolygonF, QBrush, QMouseEvent
 from PyQt6.QtWidgets import (
     QWidget, QLabel, QPushButton, QDialog, QVBoxLayout, 
     QHBoxLayout, QGridLayout, QApplication, QProgressBar
@@ -32,7 +32,7 @@ class SparklineWidget(QWidget):
         self.is_dark_theme = is_dark
         self.update()
 
-    def paintEvent(self, event):
+    def paintEvent(self, a0):
         if len(self.history_primary) < 2:
             return
 
@@ -200,7 +200,7 @@ class CircularGauge(QWidget):
         self.value = float(value)
         self.update()
 
-    def paintEvent(self, event):
+    def paintEvent(self, a0):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
@@ -324,11 +324,9 @@ class ItemDetailDialog(QDialog):
         self.exec()
 
     def copy_command(self, cmd):
-        app = QApplication.instance()
-        if app is not None:
-            clipboard = app.clipboard()
-            if clipboard is not None:
-                clipboard.setText(cmd)
+        clipboard = QApplication.clipboard()
+        if clipboard is not None:
+            clipboard.setText(cmd)
         self.copy_btn.setText("✓ Copied!")
         self.reset_timer.start(1500)
 
@@ -388,8 +386,8 @@ class SubsystemBadge(QLabel):
                 }
             """)
 
-    def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
+    def mousePressEvent(self, ev: QMouseEvent | None):
+        if ev is not None and ev.button() == Qt.MouseButton.LeftButton:
             dialog = ItemDetailDialog(f"Subsystem: {self.name}", self.is_up, self.command, self)
             pos = QCursor.pos()
             dialog.move(pos.x() - 150, pos.y() - 100)
@@ -490,14 +488,18 @@ class ServiceBadge(QLabel):
             self.desc = port_info.get("description", port_info.get("desc", f"{self.name} Service"))
             self.command = port_info.get(
                 "command", 
-                SERVICE_COMMANDS.get(self.name, SERVICE_COMMANDS.get(self.port_num, f"STRTCPSVR SERVER(*{self.name})"))
+                SERVICE_COMMANDS.get(
+                    int(self.port_num) if str(self.port_num).isdigit() else -1,
+                    f"STRTCPSVR SERVER(*{self.name})",
+                )
             )
         else:
             self.name = str(port_info)
             self.is_up = True
             self.port_num = ""
             self.desc = f"{self.name} Service"
-            self.command = SERVICE_COMMANDS.get(self.name, f"STRTCPSVR SERVER(*{self.name})")
+            command_key = int(self.name) if self.name.isdigit() else -1
+            self.command = SERVICE_COMMANDS.get(command_key, f"STRTCPSVR SERVER(*{self.name})")
 
         status_symbol = "●" if self.is_up else "✖"
         super().__init__(f"{self.name} {status_symbol}", parent)
@@ -550,8 +552,8 @@ class ServiceBadge(QLabel):
                 }
             """)
 
-    def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
+    def mousePressEvent(self, ev: QMouseEvent | None) -> None:
+        if ev is not None and ev.button() == Qt.MouseButton.LeftButton:
             title = f"{self.name} Service"
             if self.port_num:
                 title += f" (Port {self.port_num})"

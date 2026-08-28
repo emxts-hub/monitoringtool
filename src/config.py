@@ -67,8 +67,9 @@ def get_resource_path(relative_path):
     """Returns the best available path to a bundled resource, including dev, frozen, and user-data locations."""
     candidates = []
 
-    if hasattr(sys, "_MEIPASS"):
-        candidates.append(os.path.join(sys._MEIPASS, relative_path))
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        candidates.append(os.path.join(meipass, relative_path))
     elif getattr(sys, "frozen", False):
         candidates.append(os.path.join(os.path.dirname(sys.executable), relative_path))
 

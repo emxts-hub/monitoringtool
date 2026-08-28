@@ -3,6 +3,7 @@ import re
 import sys
 import smtplib
 import webbrowser
+from typing import Optional
 from email.message import EmailMessage
 from PyQt6.QtCore import QThread, pyqtSignal, Qt
 from PyQt6.QtWidgets import (
@@ -23,7 +24,7 @@ from config import (
 
 
 class AppExpirationDialog(QDialog):
-    def __init__(self, title: str, message: str, download_url: str = None, parent=None):
+    def __init__(self, title: str, message: str, download_url: Optional[str] = None, parent=None):
         super().__init__(parent)
         self.download_url = download_url
 
@@ -124,7 +125,8 @@ class LparSettingsDialog(QDialog):
         self.setWindowTitle("Configure LPAR Connections, Subsystems & Ports")
         self.resize(1000, 450)
         self.configs = current_configs.copy()
-        is_dark_theme = bool(QApplication.instance().property("is_dark_theme"))
+        app = QApplication.instance()
+        is_dark_theme = bool(app and app.property("is_dark_theme"))
         dialog_bg = "#161b22" if is_dark_theme else "#ffffff"
         table_bg = "#0d1117" if is_dark_theme else "#f6f8fa"
         surface = "#21262d" if is_dark_theme else "#eaeef2"
@@ -179,12 +181,15 @@ class LparSettingsDialog(QDialog):
         ])
         
         header = self.table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        if header is not None:
+            header.setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)
+            header.setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
+            header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         
-        self.table.verticalHeader().setVisible(False)
+        vertical_header = self.table.verticalHeader()
+        if vertical_header is not None:
+            vertical_header.setVisible(False)
         
         self.populate_table()
         

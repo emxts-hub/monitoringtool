@@ -260,7 +260,7 @@ def cleanup_old_logs(days_to_keep=30):
 
 
 def save_single_lpar_log(sys_info, server_configs=None):
-    """Appends a single LPAR result directly to local JSON history AND pushes it to Firebase Realtime Database."""
+    """Appends a single LPAR result locally and uploads it or queues it for retry."""
     logs_dir = get_logs_dir()
     now = datetime.now()
     date_str = now.strftime("%Y-%m-%d")
@@ -563,14 +563,16 @@ class SingleLparRunnable(QRunnable):
                         return
                     p_num = p_info.get("port") if isinstance(p_info, dict) else p_info
                     p_name = p_info.get("name", f"PORT_{p_num}") if isinstance(p_info, dict) else str(p_num)
-                    
-                    if str(p_num).isdigit():
-                        port_status_list.append({
-                            "port": int(p_num),
-                            "name": p_name,
-                            "service": p_name,
-                            "is_up": int(p_num) in active_ports
-                        })
+                    try:
+                        port_number = int(p_num)
+                    except (TypeError, ValueError):
+                        continue
+                    port_status_list.append({
+                        "port": port_number,
+                        "name": p_name,
+                        "service": p_name,
+                        "is_up": port_number in active_ports
+                    })
             except Exception as e:
                 metric_errors.append(f"ports: {e}")
 

@@ -6,10 +6,11 @@ import json
 import csv
 import ast
 import re
+from typing import TYPE_CHECKING
 from calendar import monthrange
 from collections import defaultdict
 from datetime import datetime, timedelta, date
-from firebase_store import delete_logs_older_than, read_recent_logs
+from firebase_store import delete_logs_older_than, read_recent_logs, sync_pending_logs
 from PyQt6.QtCore import Qt, QTimer, QFileSystemWatcher, QObject, QRunnable, QThreadPool, QThread, pyqtSignal
 from PyQt6.QtGui import QColor, QFont, QCursor, QPainter, QPen
 from PyQt6.QtWidgets import (
@@ -19,6 +20,9 @@ from PyQt6.QtWidgets import (
     QApplication, QDialog, QGridLayout
 )
 from config import get_logs_dir
+
+if TYPE_CHECKING:
+    from ui.monthly_report import MonthlyReportWidget
 
 class FirebaseCleanupWorker(QRunnable):
     """Deletes Firebase logs older than 35 days safely in background."""
@@ -36,17 +40,18 @@ class FirebaseInitialFetchWorker(QThread):
 
     def run(self):
         try:
+            sync_pending_logs()
             for node in reversed(read_recent_logs(200)):
                 self.log_fetched.emit(node)
         except Exception as e:
-            print(f"Failed to fetch initial Firestore logs: {e}")
+            print(f"Failed to sync pending logs or fetch Firestore logs: {e}")
 
 
 class FirebaseStreamWorker(QThread):
     """Polls the recent Firebase log slice so the live viewer updates on every sync without loading the whole history."""
     log_received = pyqtSignal(dict)
 
-    def __init__(self, firebase_db_url=None, poll_interval_seconds=3):
+    def __init__(self, firebase_db_url=None, poll_interval_seconds=1800):
         super().__init__()
         self.poll_interval_seconds = max(1, int(poll_interval_seconds))
         self._is_running = True
@@ -54,10 +59,11 @@ class FirebaseStreamWorker(QThread):
     def run(self):
         while self._is_running:
             try:
+                sync_pending_logs()
                 for node in reversed(read_recent_logs(200)):
                     self.log_received.emit(node)
             except Exception as e:
-                print(f"Firestore poll error: {e}")
+                print(f"Firestore sync poll error: {e}")
             self.msleep(self.poll_interval_seconds * 1000)
 
     def stop(self):
@@ -141,12 +147,14 @@ class LogHistoryLoader(QRunnable):
 
 
 class LogViewerWidget(QWidget):
+    monthly_report_widget: "MonthlyReportWidget | None"
+
     @staticmethod
     def _normalize_server_name(value):
         if value is None:
             return ""
         text = str(value).strip()
-        if not text or text.lower() in {"n/a", "none", "unknown"}:
+        if not text or text.lower() in {"n/a", "none", "unknown", "copy", "copied"}:
             return ""
         if re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", text):
             return ""
@@ -189,6 +197,7 @@ class LogViewerWidget(QWidget):
         self._last_log_scan_signature = None
         self._last_active_lpars_signature = None
         self._last_online_sync = None
+        self._date_selected_by_user = False
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(16, 16, 16, 16)
@@ -299,8 +308,12 @@ class LogViewerWidget(QWidget):
         self.stream_table.setHorizontalHeaderLabels([
             "TIMESTAMP", "LPAR NAME", "IP ADDRESS", "CPU USAGE", "ASP USAGE", "SUBSYSTEMS", "STATUS", "SERVICES DOWN"
         ])
-        self.stream_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.stream_table.verticalHeader().hide()
+        horizontal_header = self.stream_table.horizontalHeader()
+        if horizontal_header is not None:
+            horizontal_header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        vertical_header = self.stream_table.verticalHeader()
+        if vertical_header is not None:
+            vertical_header.hide()
         self.stream_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self._apply_table_styling(self.stream_table)
         self.stream_table.setMinimumHeight(280)
@@ -323,14 +336,15 @@ class LogViewerWidget(QWidget):
 
         # Asynchronous initializations to avoid main thread freeze
         QTimer.singleShot(50, self.load_log_history)
-        self._history_thread_pool.start(FirebaseCleanupWorker())
+        if self._history_thread_pool is not None:
+            self._history_thread_pool.start(FirebaseCleanupWorker())
 
         # Fetch existing Firebase logs asynchronously on startup via QThread
         self.fetch_worker = FirebaseInitialFetchWorker()
         self.fetch_worker.log_fetched.connect(self._on_firebase_log_received)
         self.fetch_worker.start()
 
-        # Connect Firebase Real-Time SSE Worker
+        # Poll Firestore every 10 minutes; manual refresh remains available.
         self.firebase_thread = FirebaseStreamWorker()
         self.firebase_thread.log_received.connect(self._on_firebase_log_received)
         self.firebase_thread.start()
@@ -477,13 +491,16 @@ class LogViewerWidget(QWidget):
 
         current_selection = self.date_combo.currentText()
         available_dates = sorted(self.log_data_store.keys(), reverse=True)
+        today_key = date.today().strftime("%Y-%m-%d")
 
         self.date_combo.blockSignals(True)
         self.date_combo.clear()
         self.date_combo.addItems(available_dates)
 
-        if current_selection in available_dates:
+        if self._date_selected_by_user and current_selection in available_dates:
             self.date_combo.setCurrentText(current_selection)
+        elif today_key in available_dates:
+            self.date_combo.setCurrentText(today_key)
         elif available_dates:
             self.date_combo.setCurrentIndex(0)
 
@@ -551,11 +568,14 @@ class LogViewerWidget(QWidget):
         table.setColumnCount(len(self.HOURS) + 2)
         headers = ["LPAR"] + self.HOURS + ["ACTION"]
         table.setHorizontalHeaderLabels(headers)
-        table.verticalHeader().hide()
+        vertical_header = table.verticalHeader()
+        assert vertical_header is not None
+        vertical_header.hide()
         table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         header = table.horizontalHeader()
+        assert header is not None
         header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(len(self.HOURS) + 1, QHeaderView.ResizeMode.Fixed)
@@ -642,14 +662,19 @@ class LogViewerWidget(QWidget):
         self.active_lpars = sorted({name for name in normalized_active if name})
 
         current_selection = self.date_combo.currentText()
+        today_key = date.today().strftime("%Y-%m-%d")
         self.date_combo.blockSignals(True)
         self.date_combo.clear()
 
         available_dates = sorted(self.log_data_store.keys(), reverse=True)
         if available_dates:
             self.date_combo.addItems(available_dates)
-            if current_selection in available_dates:
+            if self._date_selected_by_user and current_selection in available_dates:
                 self.date_combo.setCurrentText(current_selection)
+            elif today_key in available_dates:
+                self.date_combo.setCurrentText(today_key)
+            else:
+                self.date_combo.setCurrentIndex(0)
         else:
             self.date_combo.addItem(date.today().strftime("%Y-%m-%d"))
 
@@ -722,9 +747,12 @@ class LogViewerWidget(QWidget):
         self.history_signals.finished.connect(self._on_history_loaded)
 
         loader = LogHistoryLoader(target_dir, self.active_lpars, self.history_signals)
-        self._history_thread_pool.start(loader)
+        if self._history_thread_pool is not None:
+            self._history_thread_pool.start(loader)
 
     def on_date_changed(self):
+        if not self.date_combo.signalsBlocked():
+            self._date_selected_by_user = True
         self.populate_views()
 
     def populate_views(self):
@@ -857,7 +885,10 @@ class LogViewerWidget(QWidget):
             table.setCellWidget(row, 25, cell_widget)
 
     def _copy_to_clipboard(self, text, button):
-        QApplication.clipboard().setText(text)
+        clipboard = QApplication.clipboard()
+        if clipboard is None:
+            return
+        clipboard.setText(text)
         button.setText("Copied")
         QTimer.singleShot(1200, lambda: button.setText("Copy"))
 
@@ -920,11 +951,14 @@ class LogViewerWidget(QWidget):
 
             sub_count = f" {subs_summary}" if subs_summary else f"{len(subs_detail)} Active"
             sub_btn = QPushButton(sub_count)
-            sub_btn.subs_detail = subs_detail
             sub_btn.setFlat(True)
             sub_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
             sub_btn.setStyleSheet("QPushButton { color: #58a6ff; font-size: 11px; font-weight: bold; border: none; text-decoration: underline; }")
-            sub_btn.clicked.connect(lambda _, l=lpar, d=subs_detail: self._show_subsystems_dialog(l, d))
+            expected_key = rec.get("config_key") or lpar
+            sub_btn.clicked.connect(
+                lambda _, l=lpar, d=subs_detail, k=expected_key:
+                self._show_subsystems_dialog(l, d, k)
+            )
 
             sub_container = QWidget()
             sub_layout = QVBoxLayout(sub_container)
@@ -1017,6 +1051,8 @@ class LogViewerWidget(QWidget):
                     wb = openpyxl.Workbook()
 
                     ws_asp = wb.active
+                    if ws_asp is None:
+                        raise RuntimeError("Unable to access the active worksheet")
                     ws_asp.title = "ASP"
                     self._export_table_to_openpyxl(self.asp_table, ws_asp)
 
@@ -1056,7 +1092,10 @@ class LogViewerWidget(QWidget):
             sheet.append(row_data)
 
     def _export_stream_to_openpyxl(self, sheet):
-        headers = [self.stream_table.horizontalHeaderItem(c).text() for c in range(self.stream_table.columnCount())]
+        headers = [
+            item.text() if (item := self.stream_table.horizontalHeaderItem(c)) else ""
+            for c in range(self.stream_table.columnCount())
+        ]
         sheet.append(headers)
 
         for r in range(self.stream_table.rowCount()):
@@ -1067,8 +1106,8 @@ class LogViewerWidget(QWidget):
                     subs_list = []
                     if widget:
                         btn = widget.findChild(QPushButton)
-                        if btn and hasattr(btn, "subs_detail"):
-                            subs_list = btn.subs_detail
+                        if btn:
+                            subs_list = getattr(btn, "subs_detail", [])
                     row_data.append(self._format_subsystems_list(subs_list))
                     continue
 
@@ -1089,25 +1128,42 @@ class LogViewerWidget(QWidget):
             writer = csv.writer(f)
 
             writer.writerow(["--- ASP USAGE ---"])
-            asp_headers = [self.asp_table.horizontalHeaderItem(c).text() for c in range(self.asp_table.columnCount() - 1)]
+            asp_headers = [
+                header.text() if header is not None else ""
+                for c in range(self.asp_table.columnCount() - 1)
+                if (header := self.asp_table.horizontalHeaderItem(c)) is not None
+            ]
             writer.writerow(asp_headers)
             for r in range(self.asp_table.rowCount()):
-                row_data = [self.asp_table.item(r, c).text() if self.asp_table.item(r, c) else "" for c in range(self.asp_table.columnCount() - 1)]
+                row_data = []
+                for c in range(self.asp_table.columnCount() - 1):
+                    item = self.asp_table.item(r, c)
+                    row_data.append(item.text() if item is not None else "")
                 writer.writerow(row_data)
 
             writer.writerow([])
 
             writer.writerow(["--- CPU USAGE ---"])
-            cpu_headers = [self.cpu_table.horizontalHeaderItem(c).text() for c in range(self.cpu_table.columnCount() - 1)]
+            cpu_headers = [
+                header.text() if header is not None else ""
+                for c in range(self.cpu_table.columnCount() - 1)
+                if (header := self.cpu_table.horizontalHeaderItem(c)) is not None
+            ]
             writer.writerow(cpu_headers)
             for r in range(self.cpu_table.rowCount()):
-                row_data = [self.cpu_table.item(r, c).text() if self.cpu_table.item(r, c) else "" for c in range(self.cpu_table.columnCount() - 1)]
+                row_data = []
+                for c in range(self.cpu_table.columnCount() - 1):
+                    item = self.cpu_table.item(r, c)
+                    row_data.append(item.text() if item is not None else "")
                 writer.writerow(row_data)
 
             writer.writerow([])
 
             writer.writerow(["--- LOG STREAM ---"])
-            stream_headers = [self.stream_table.horizontalHeaderItem(c).text() for c in range(self.stream_table.columnCount())]
+            stream_headers = []
+            for c in range(self.stream_table.columnCount()):
+                header = self.stream_table.horizontalHeaderItem(c)
+                stream_headers.append(header.text() if header is not None else "")
             writer.writerow(stream_headers)
 
             for r in range(self.stream_table.rowCount()):
@@ -1118,8 +1174,8 @@ class LogViewerWidget(QWidget):
                         subs_list = []
                         if widget:
                             btn = widget.findChild(QPushButton)
-                            if btn and hasattr(btn, "subs_detail"):
-                                subs_list = btn.subs_detail
+                            if btn:
+                                subs_list = getattr(btn, "subs_detail", [])
                         row_data.append(self._format_subsystems_list(subs_list))
                         continue
 
@@ -1135,7 +1191,7 @@ class LogViewerWidget(QWidget):
                             row_data.append("")
                 writer.writerow(row_data)
 
-    def _show_subsystems_dialog(self, lpar_name, subsystems):
+    def _show_subsystems_dialog(self, lpar_name, subsystems, expected_key=None):
         from config import EXPECTED_SUBSYSTEMS
 
         dialog = QDialog(self)
@@ -1184,7 +1240,18 @@ class LogViewerWidget(QWidget):
             if clean_name:
                 active_map[clean_name] = status
 
-        expected_list = EXPECTED_SUBSYSTEMS.get(lpar_name, [])
+        lookup_keys = [expected_key, lpar_name]
+        expected_list = []
+        for lookup_key in lookup_keys:
+            if lookup_key in EXPECTED_SUBSYSTEMS:
+                expected_list = EXPECTED_SUBSYSTEMS.get(lookup_key, [])
+                break
+        expected_list = [
+            str(name).strip()
+            for name in expected_list
+            if str(name).strip()
+        ]
+        expected_names = {name.upper() for name in expected_list}
         all_display_items = []
 
         for exp in expected_list:
@@ -1197,7 +1264,7 @@ class LogViewerWidget(QWidget):
                 all_display_items.append((exp_upper, True))
 
         for act_name, st in active_map.items():
-            if act_name not in [e.upper() for e in expected_list]:
+            if act_name not in expected_names:
                 is_down = st in ["INACTIVE", "DOWN", "INACTIVE/OFF", "OFF"]
                 all_display_items.append((act_name, is_down))
 
@@ -1207,13 +1274,13 @@ class LogViewerWidget(QWidget):
                     "background-color: #3c1618; color: #f85149; border: 1px solid #f85149; "
                     "border-radius: 4px; padding: 4px 8px; font-weight: bold; font-size: 11px;"
                 )
-                badge_text = f"â— {sub_name} (DOWN)"
+                badge_text = f"[DOWN] {sub_name}"
             else:
                 badge_style = (
                     "background-color: #0d281e; color: #3fb950; border: 1px solid #1e4b33; "
                     "border-radius: 4px; padding: 4px 8px; font-weight: bold; font-size: 11px;"
                 )
-                badge_text = f"â— {sub_name}"
+                badge_text = f"[ACTIVE] {sub_name}"
 
             badge = QLabel(badge_text)
             badge.setStyleSheet(badge_style)
@@ -1227,13 +1294,13 @@ class LogViewerWidget(QWidget):
 
         dialog.exec()
 
-    def closeEvent(self, event):
+    def closeEvent(self, a0):
         if hasattr(self, 'firebase_thread') and self.firebase_thread.isRunning():
             self.firebase_thread.stop()
         if hasattr(self, 'fetch_worker') and self.fetch_worker.isRunning():
             self.fetch_worker.quit()
             self.fetch_worker.wait()
-        super().closeEvent(event)
+        super().closeEvent(a0)
 
     def get_selected_date(self) -> str:
         return self.date_combo.currentText() or date.today().strftime("%Y-%m-%d")

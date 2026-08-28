@@ -16,6 +16,9 @@ from PyQt6.QtWidgets import (
 class MonthlyReportWidget(QWidget):
     """Monthly ASP/CPU report styled like a monitoring dashboard, with charts and summary cards."""
 
+    cpu_chart: "MetricChartWidget"
+    asp_chart: "MetricChartWidget"
+
     @staticmethod
     def _normalize_server_name(value):
         if value is None:
@@ -37,34 +40,67 @@ class MonthlyReportWidget(QWidget):
             self.days = []
             self.max_value = 100.0
             self.min_value = 0.0
+            self.is_dark_theme = True
             self.base_colors = [
                 "#3b82f6", "#f59e0b", "#10b981", "#a78bfa", "#f97316",
                 "#34d399", "#f87171", "#60a5fa", "#f9a8d4", "#c084fc"
             ]
 
         def set_data(self, report_rows, days, current_month):
+            normalized_days = []
+            for day in days:
+                try:
+                    normalized_days.append(int(day))
+                except (TypeError, ValueError):
+                    continue
+            if not normalized_days:
+                discovered_days = set()
+                for row in report_rows:
+                    day_map = row.get("day_map", {})
+                    if isinstance(day_map, dict):
+                        for day in day_map:
+                            try:
+                                discovered_days.add(int(day))
+                            except (TypeError, ValueError):
+                                continue
+                normalized_days = sorted(discovered_days)
+
             values_by_server = []
             for row in report_rows:
                 server = row.get("server")
                 day_map = row.get("day_map", {})
                 series = []
-                for day in days:
-                    value = day_map.get(day)
-                    series.append(float(value) if value is not None else 0.0)
+                for day in normalized_days:
+                    value = day_map.get(day, day_map.get(str(day)))
+                    series.append(float(value) if value is not None else None)
                 values_by_server.append((server, series, row.get("month_avg", 0.0)))
 
             self.series = values_by_server
-            self.days = list(days)
+            self.days = normalized_days
             self.current_month = current_month
-            self.max_value = max(100.0, max((v for _, series, _ in self.series for v in series), default=100.0) * 1.15)
+            self.max_value = max(
+                100.0,
+                max(
+                    (v for _, series, _ in self.series for v in series if v is not None),
+                    default=100.0,
+                ) * 1.15,
+            )
             self.min_value = 0.0
             self.update()
 
-        def paintEvent(self, event):
+        def set_theme(self, is_dark_theme):
+            self.is_dark_theme = is_dark_theme
+            self.update()
+
+        def paintEvent(self, a0):
             painter = QPainter(self)
             try:
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-                painter.fillRect(self.rect(), QColor("#f8fafc"))
+                background = "#161b22" if self.is_dark_theme else "#f8fafc"
+                grid = "#30363d" if self.is_dark_theme else "#cbd5e1"
+                muted = "#8b949e" if self.is_dark_theme else "#6b7280"
+                legend = "#c9d1d9" if self.is_dark_theme else "#334155"
+                painter.fillRect(self.rect(), QColor(background))
 
                 rect = self.rect().adjusted(10, 12, -10, -10)
                 left = rect.left() + 26
@@ -73,24 +109,26 @@ class MonthlyReportWidget(QWidget):
                 bottom = rect.bottom() - 24
 
                 if not self.series or not self.days:
-                    painter.setPen(QPen(QColor("#94a3b8"), 1))
+                    painter.setPen(QPen(QColor(muted), 1))
                     painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "No data available")
                     return
 
-                painter.setPen(QPen(QColor("#cbd5e1"), 1))
+                painter.setPen(QPen(QColor(grid), 1))
                 for grid in range(0, 6):
                     y = int(top + (bottom - top) * (grid / 5.0))
                     painter.drawLine(left, y, right, y)
 
                 x_step = (right - left) / max(1, len(self.days) - 1 if len(self.days) > 1 else 1)
                 for idx, day in enumerate(self.days):
-                    x = left + (x_step * idx if len(self.days) > 1 else 0)
+                    x = int(round(left + (x_step * idx if len(self.days) > 1 else 0)))
                     if idx < len(self.days) - 1:
                         painter.drawLine(x, top, x, bottom)
 
                 for server_index, (name, series, _) in enumerate(self.series):
                     points = []
                     for idx, value in enumerate(series):
+                        if value is None:
+                            continue
                         if len(self.days) > 1:
                             x = left + (right - left) * idx / max(1, len(self.days) - 1)
                         else:
@@ -100,17 +138,27 @@ class MonthlyReportWidget(QWidget):
                     color = QColor(self.base_colors[server_index % len(self.base_colors)])
                     painter.setPen(QPen(color, 2.2))
                     if len(points) == 1:
-                        painter.drawPoint(points[0])
+                        painter.setBrush(color)
+                        painter.drawEllipse(points[0], 4, 4)
+                        painter.setBrush(Qt.BrushStyle.NoBrush)
                     else:
                         painter.drawPolyline(QPolygonF(points))
+                        painter.setBrush(color)
+                        for point in points:
+                            painter.drawEllipse(point, 3, 3)
+                        painter.setBrush(Qt.BrushStyle.NoBrush)
 
-                painter.setPen(QPen(QColor("#6b7280"), 1))
+                painter.setPen(QPen(QColor(muted), 1))
                 for idx, day in enumerate(self.days):
-                    x = left + (x_step * idx if len(self.days) > 1 else 0)
-                    if day % max(2, int(len(self.days) / 6)) == 0 or idx == len(self.days) - 1:
+                    x = int(round(left + (x_step * idx if len(self.days) > 1 else 0)))
+                    if (
+                        len(self.days) <= 31
+                        or day % max(2, int(len(self.days) / 6)) == 0
+                        or idx == len(self.days) - 1
+                    ):
                         painter.drawText(int(x) - 10, bottom + 18, 24, 16, Qt.AlignmentFlag.AlignCenter, str(day))
 
-                painter.setPen(QPen(QColor("#6b7280"), 1))
+                painter.setPen(QPen(QColor(muted), 1))
                 for idx in range(6):
                     value = self.max_value - ((self.max_value - self.min_value) * idx / 5.0)
                     y = top + (bottom - top) * (idx / 5.0)
@@ -126,7 +174,7 @@ class MonthlyReportWidget(QWidget):
                     color = QColor(self.base_colors[idx % len(self.base_colors)])
                     painter.setPen(QPen(color, 2.5))
                     painter.drawLine(start_x, legend_y, start_x + 14, legend_y)
-                    painter.setPen(QPen(QColor("#334155"), 1))
+                    painter.setPen(QPen(QColor(legend), 1))
                     painter.drawText(start_x + 18, legend_y + 5, 64, 12, Qt.AlignmentFlag.AlignLeft, name[:7])
                     start_x += 80
             finally:
@@ -166,6 +214,7 @@ class MonthlyReportWidget(QWidget):
         self.source_mode = "local"
         self.last_sync_at = None
         self._sync_in_progress = False
+        self._mode_buttons = []
 
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(16, 16, 16, 16)
@@ -244,6 +293,26 @@ class MonthlyReportWidget(QWidget):
             btn.setAutoExclusive(True)
             if label == "Day":
                 btn.setChecked(True)
+            btn.setStyleSheet("""
+                QPushButton {
+                    background-color: transparent;
+                    color: #8b949e;
+                    border: 1px solid #30363d;
+                    border-radius: 10px;
+                    padding: 2px 9px;
+                }
+                QPushButton:hover {
+                    background-color: #21262d;
+                    color: #f0f6fc;
+                }
+                QPushButton:checked {
+                    background-color: #1f6feb;
+                    color: #ffffff;
+                    border: 1px solid #388bfd;
+                    font-weight: bold;
+                }
+            """)
+            self._mode_buttons.append(btn)
             btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
             button_layout.addWidget(btn)
         top_row.addWidget(button_group)
@@ -289,6 +358,8 @@ class MonthlyReportWidget(QWidget):
         section_layout.addWidget(right_panel, stretch=1)
 
         setattr(self, f"{metric_name.lower()}_chart", chart)
+        setattr(self, f"{metric_name.lower()}_panel", left_panel)
+        setattr(self, f"{metric_name.lower()}_label", metric_label)
         setattr(self, f"{metric_name.lower()}_summary_card", self._summary_cards[metric_name]["average"])
         return section
 
@@ -393,10 +464,49 @@ class MonthlyReportWidget(QWidget):
         self.title_label.setStyleSheet(f"color: {'#ffffff' if is_dark_theme else '#1f2328'};")
         self.sync_status_label.setStyleSheet(f"color: {'#8b949e' if is_dark_theme else '#57606a'};")
         self.summary_label.setStyleSheet(f"color: {'#8b949e' if is_dark_theme else '#57606a'};")
+        button_text = "#8b949e" if is_dark_theme else "#57606a"
+        button_hover = "#21262d" if is_dark_theme else "#eaeef2"
+        button_checked = "#1f6feb"
+        for button in self._mode_buttons:
+            button.setStyleSheet(
+                f"""
+                QPushButton {{
+                    background-color: transparent;
+                    color: {button_text};
+                    border: 1px solid {border};
+                    border-radius: 10px;
+                    padding: 2px 9px;
+                }}
+                QPushButton:hover {{
+                    background-color: {button_hover};
+                    color: {text};
+                }}
+                QPushButton:checked {{
+                    background-color: {button_checked};
+                    color: #ffffff;
+                    border: 1px solid #388bfd;
+                    font-weight: bold;
+                }}
+                """
+            )
+        for metric_name in ("CPU", "ASP"):
+            chart = getattr(self, f"{metric_name.lower()}_chart", None)
+            panel_widget = getattr(self, f"{metric_name.lower()}_panel", None)
+            label = getattr(self, f"{metric_name.lower()}_label", None)
+            if chart is not None:
+                chart.set_theme(is_dark_theme)
+            if panel_widget is not None:
+                panel_widget.setStyleSheet(
+                    f"background-color: {panel}; border: 1px solid {border}; border-radius: 10px;"
+                )
+            if label is not None:
+                label.setStyleSheet(f"color: {text};")
         for metric_name in ("CPU", "ASP"):
             section = getattr(self, f"{metric_name.lower()}_summary_card", None)
             if section is not None:
                 section.set_theme(is_dark_theme)
+        if self.isVisible():
+            self.refresh_report()
 
     def load_month_options(self):
         months = set()
@@ -440,20 +550,27 @@ class MonthlyReportWidget(QWidget):
         server_layout = self._replace_layout(server_list, server_layout)
 
         ranking = sorted(rows, key=lambda row: row.get("month_avg", 0.0), reverse=True)
-        for row in ranking:
+        for index, row in enumerate(ranking):
             label = QLabel(f"{row.get('server', 'Unknown')}")
             label.setFont(self._make_font("Segoe UI", 8))
-            label.setStyleSheet("color: #475569; background: transparent;")
+            label.setStyleSheet(
+                f"color: {'#c9d1d9' if self.is_dark_theme else '#475569'}; background: transparent;"
+            )
             value = QLabel(f"{row.get('month_avg', 0.0):.2f}%")
             value.setFont(self._make_font("Segoe UI", 8, QFont.Weight.Bold))
-            value.setStyleSheet("color: #1f2937; background: transparent;")
+            value.setStyleSheet(
+                f"color: {'#f0f6fc' if self.is_dark_theme else '#1f2937'}; background: transparent;"
+            )
             row_widget = QWidget()
             row_widget.setFixedHeight(26)
             row_layout = QHBoxLayout(row_widget)
             row_layout.setContentsMargins(0, 0, 0, 0)
             row_layout.setSpacing(8)
             dot = QLabel("●")
-            dot.setStyleSheet("color: #3b82f6; font-size: 9px; background: transparent;")
+            color = chart_widget.base_colors[index % len(chart_widget.base_colors)]
+            dot.setStyleSheet(
+                f"color: {color}; font-size: 9px; background: transparent;"
+            )
             row_layout.addWidget(dot)
             row_layout.addWidget(label)
             row_layout.addStretch()

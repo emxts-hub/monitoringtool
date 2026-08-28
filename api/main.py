@@ -2,6 +2,7 @@ import os
 from flask import Flask, jsonify, request
 from firebase_admin import firestore, initialize_app
 from google.cloud.firestore_v1.base_query import FieldFilter
+from google.cloud.firestore_v1.query import Query
 
 
 app = Flask(__name__)
@@ -26,6 +27,7 @@ def write_log():
     payload, error = _require_json()
     if error:
         return error
+    assert payload is not None
     if not isinstance(payload.get("timestamp"), str) or not isinstance(
         payload.get("records"), list
     ):
@@ -42,7 +44,7 @@ def read_logs():
         return jsonify({"error": "limit must be an integer"}), 400
     query = (
         db.collection("logs")
-        .order_by("timestamp", direction=firestore.Query.DESCENDING)
+        .order_by("timestamp", direction=Query.DESCENDING)
         .limit(limit)
     )
     return jsonify([snapshot.to_dict() for snapshot in query.stream()])

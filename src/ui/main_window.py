@@ -24,6 +24,7 @@ from ui.log_viewer import LogViewerWidget
 from ui.monthly_report import MonthlyReportWidget
 from ui.widgets import RefreshStatusWidget, StatusBadgesWidget, SubsystemGridWidget, ThemeLoadingDialog
 from dialogs import LparSettingsDialog
+from version_worker import VersionCheckWorker
 from config import SERVER_CONFIGS, EXPECTED_SUBSYSTEMS, get_resource_path
 from ui.styles import DARK_STYLESHEET, LIGHT_STYLESHEET
 
@@ -961,8 +962,11 @@ def resource_path(relative_path):
 
 
 class IBMiDashboard(QMainWindow):
+    _version_worker: VersionCheckWorker | None
+
     def __init__(self, version_str: str = APP_VERSION):
         super().__init__()
+        self._version_worker = None
         self.version_str = version_str
         self.setWindowTitle(f"{APP_NAME} - v{version_str}")
         self.setGeometry(100, 100, 900, 600)
@@ -1016,7 +1020,7 @@ class IBMiDashboard(QMainWindow):
             source_mode="local"
         )
         self.log_viewer_widget.monthly_report_widget = self.monthly_report_widget
-        self.monthly_report_widget.parent_log_viewer = self.log_viewer_widget
+        setattr(self.monthly_report_widget, "parent_log_viewer", self.log_viewer_widget)
         self.monthly_report_widget.set_last_sync_timestamp(
             self.log_viewer_widget._last_online_sync
         )
@@ -1293,8 +1297,10 @@ class IBMiDashboard(QMainWindow):
 
         while self.cards_grid.count():
             item = self.cards_grid.takeAt(0)
-            if item is not None and item.widget():
-                item.widget().setParent(None)
+            if item is not None:
+                widget = item.widget()
+                if widget is not None:
+                    widget.setParent(None)
 
         cols = 4
         current_row = 0
