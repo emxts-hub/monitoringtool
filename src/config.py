@@ -4,7 +4,7 @@ import json
 from datetime import datetime, timezone
 
 APP_NAME = "IBMi_Dashboard"
-APP_VERSION = "3.0.1"
+APP_VERSION = "3.1.1"
 USER_PROFILE = os.environ.get("USERPROFILE") or os.path.expanduser("~")
 ONEDRIVE_SHAREPOINT_PATH = os.path.join(
     USER_PROFILE,
