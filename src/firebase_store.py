@@ -1,166 +1,105 @@
-import os
-import sys
 import json
-import threading
-import uuid
+import os
 
-import firebase_admin
-from firebase_admin import credentials, firestore
-from google.cloud.firestore_v1.base_query import FieldFilter
-from config import get_logs_dir
+from config import get_logs_dir, get_all_logs_dirs
 
 
-_FIRESTORE_LOCK = threading.Lock()
-_FIRESTORE_CLIENT = None
-_PENDING_LOGS_LOCK = threading.Lock()
-_PENDING_LOGS_FILENAME = "pending_firestore_logs.json"
-
-
-def _credential_path():
-    configured_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-    if configured_path:
-        return configured_path
-
-    if getattr(sys, "frozen", False):
-        return os.path.join(os.path.dirname(sys.executable), "service-account.json")
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "service-account.json")
-
-
-def get_firestore_client():
-    global _FIRESTORE_CLIENT
-    with _FIRESTORE_LOCK:
-        if _FIRESTORE_CLIENT is None:
-            if not firebase_admin._apps:
-                credential_path = _credential_path()
-                if not os.path.isfile(credential_path):
-                    raise RuntimeError(
-                        f"Firestore credential file not found: {credential_path}"
-                    )
-                firebase_admin.initialize_app(
-                    credentials.Certificate(credential_path)
-                )
-            _FIRESTORE_CLIENT = firestore.client()
-        return _FIRESTORE_CLIENT
-
-
-def _pending_logs_path():
-    return os.path.join(get_logs_dir(), _PENDING_LOGS_FILENAME)
-
-
-def _read_pending_logs():
-    path = _pending_logs_path()
-    if not os.path.isfile(path):
+def _read_local_log_file(file_path):
+    if not os.path.isfile(file_path):
         return []
     try:
-        with open(path, "r", encoding="utf-8") as file:
-            data = json.load(file)
+        with open(file_path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
     except (OSError, json.JSONDecodeError):
         return []
-    return data if isinstance(data, list) else []
-
-
-def _write_pending_logs(entries):
-    path = _pending_logs_path()
-    if not entries:
-        try:
-            if os.path.exists(path):
-                os.remove(path)
-        except OSError as error:
-            raise OSError(f"Could not remove pending Firestore queue: {error}") from error
-        return
-
-    temporary_path = f"{path}.{uuid.uuid4().hex}.tmp"
-    try:
-        with open(temporary_path, "w", encoding="utf-8") as file:
-            json.dump(entries, file, indent=2)
-        os.replace(temporary_path, path)
-    except OSError:
-        if os.path.exists(temporary_path):
-            os.remove(temporary_path)
-        raise
-
-
-def _write_log_online(entry):
-    client = get_firestore_client()
-    records = entry.get("records") if isinstance(entry, dict) else None
-    entry_id = None
-    if isinstance(records, list) and records and isinstance(records[0], dict):
-        entry_id = records[0].get("entry_id")
-
-    if entry_id:
-        client.collection("logs").document(str(entry_id)).set(entry)
-    else:
-        client.collection("logs").add(entry)
-
-
-def _queue_pending_log(entry):
-    with _PENDING_LOGS_LOCK:
-        pending = _read_pending_logs()
-        entry_signature = json.dumps(entry, sort_keys=True, default=str)
-        if not any(
-            json.dumps(item, sort_keys=True, default=str) == entry_signature
-            for item in pending
-        ):
-            pending.append(entry)
-            _write_pending_logs(pending)
+    return data if isinstance(data, list) else ([] if data is None else [data])
 
 
 def write_log(entry):
-    """Write a log online, or persist it for the next automatic sync attempt."""
+    """Persist log entries locally only; online syncing is intentionally disabled."""
+    if not isinstance(entry, dict):
+        return False
+
+    timestamp = str(entry.get("timestamp") or "")
+    if not timestamp:
+        return False
+
+    date_key = timestamp[:10] if len(timestamp) >= 10 else ""
+    if not date_key:
+        return False
+
+    log_dir = get_logs_dir()
+    os.makedirs(log_dir, exist_ok=True)
+    file_path = os.path.join(log_dir, f"lpar_history_{date_key}.json")
+
+    existing = _read_local_log_file(file_path)
+    entry_signature = json.dumps(entry, sort_keys=True, default=str)
+    if not any(
+        json.dumps(item, sort_keys=True, default=str) == entry_signature
+        for item in existing
+    ):
+        existing.append(entry)
+
+    temp_path = f"{file_path}.tmp"
     try:
-        _write_log_online(entry)
+        with open(temp_path, "w", encoding="utf-8") as handle:
+            json.dump(existing, handle, indent=2)
+        os.replace(temp_path, file_path)
         return True
-    except Exception as error:
-        _queue_pending_log(entry)
-        print(f"Firestore unavailable; queued log for retry: {error}")
+    except OSError:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
         return False
 
 
 def sync_pending_logs():
-    """Upload queued offline logs and retain any item that still cannot be sent."""
-    with _PENDING_LOGS_LOCK:
-        pending = _read_pending_logs()
-        if not pending:
-            return 0
-
-        remaining = []
-        uploaded = 0
-        for entry in pending:
-            try:
-                _write_log_online(entry)
-                uploaded += 1
-            except Exception:
-                remaining.append(entry)
-
-        _write_pending_logs(remaining)
-        return uploaded
+    """Offline mode: there is no online sync queue to flush."""
+    return 0
 
 
-def read_recent_logs(limit=200):
-    query = (
-        get_firestore_client()
-        .collection("logs")
-        .order_by("timestamp", direction=firestore.Query.DESCENDING)
-        .limit(limit)
-    )
-    return [snapshot.to_dict() for snapshot in query.stream()]
+def read_recent_logs(limit=500):
+    try:
+        limit_value = max(1, int(limit))
+    except (TypeError, ValueError):
+        limit_value = 500
+    limit_value = min(limit_value, 1000)
+
+    entries = []
+    for log_dir in get_all_logs_dirs():
+        if not os.path.isdir(log_dir):
+            continue
+        for file_name in sorted(os.listdir(log_dir), reverse=True):
+            if not file_name.startswith("lpar_history_") or not file_name.endswith(".json"):
+                continue
+            file_path = os.path.join(log_dir, file_name)
+            for item in _read_local_log_file(file_path):
+                if isinstance(item, dict):
+                    entries.append(item)
+                if len(entries) >= limit_value:
+                    return entries
+    return entries[:limit_value]
 
 
 def delete_logs_older_than(cutoff_timestamp):
-    client = get_firestore_client()
-    old_logs = (
-        client.collection("logs")
-        .where(filter=FieldFilter("timestamp", "<", cutoff_timestamp))
-        .stream()
-    )
-    batch = client.batch()
-    count = 0
-    for snapshot in old_logs:
-        batch.delete(snapshot.reference)
-        count += 1
-        if count == 400:
-            batch.commit()
-            batch = client.batch()
-            count = 0
-    if count:
-        batch.commit()
+    """Local offline cleanup: remove daily history files older than the cutoff date."""
+    log_dir = get_logs_dir()
+    if not os.path.isdir(log_dir):
+        return 0
+
+    cutoff_text = str(cutoff_timestamp).split(" ", 1)[0] if cutoff_timestamp is not None else ""
+    if not cutoff_text:
+        return 0
+
+    removed = 0
+    for file_name in os.listdir(log_dir):
+        if not file_name.startswith("lpar_history_") or not file_name.endswith(".json"):
+            continue
+        file_date = file_name[len("lpar_history_"):-5]
+        if file_date < cutoff_text:
+            file_path = os.path.join(log_dir, file_name)
+            try:
+                os.remove(file_path)
+                removed += 1
+            except OSError:
+                pass
+    return removed

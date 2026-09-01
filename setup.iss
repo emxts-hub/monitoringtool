@@ -21,9 +21,8 @@ UninstallDisplayIcon={app}\{#AppExeName}
 
 [Files]
 Source: "dist\{#AppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-; For a private local test build, uncomment the next line and place the JSON
-; beside this .iss file. Never commit or upload the credential file.
-Source: "service-account.json"; DestDir: "{app}"; Flags: ignoreversion
+; Offline-only release build: no Firebase service account JSON is bundled.
+; The workflow removes any legacy credential file before packaging.
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"

@@ -5,6 +5,16 @@ from datetime import datetime, timezone
 
 APP_NAME = "IBMi_Dashboard"
 APP_VERSION = "3.0.1"
+USER_PROFILE = os.environ.get("USERPROFILE") or os.path.expanduser("~")
+ONEDRIVE_SHAREPOINT_PATH = os.path.join(
+    USER_PROFILE,
+    "OneDrive - Questronix Corporation",
+    "MCSU Engineering and Hybrid Infra - Documents",
+    "Projects",
+    "BY",
+    "RUNBOOK",
+    "ASPCPU logs",
+)
 
 # By default, disable the hard expiration gate. Set this explicitly only when
 # you intentionally want to enforce a release cutoff for a specific build.
@@ -57,11 +67,69 @@ def get_config_path():
     """Returns the writable path to the application configuration file."""
     return os.path.join(get_app_data_dir(), "config.json")
 
+LEGACY_LOGS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+
+
+def _year_log_root():
+    """Return the top-level year folder under the SharePoint ASPCPU log archive."""
+    current_year = datetime.now().strftime("%Y")
+    root = os.path.join(ONEDRIVE_SHAREPOINT_PATH, current_year)
+    os.makedirs(root, exist_ok=True)
+    return root
+
+
+def _monthly_log_root():
+    """Return the SharePoint month folder that stores the daily JSON log files."""
+    current_year = datetime.now().strftime("%Y")
+    month_name = datetime.now().strftime("%B %Y")
+    root = os.path.join(ONEDRIVE_SHAREPOINT_PATH, current_year, month_name)
+    os.makedirs(root, exist_ok=True)
+    return root
+
+
 def get_logs_dir():
-    """Returns the writable application log directory in the project folder."""
-    logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
-    os.makedirs(logs_dir, exist_ok=True)
-    return logs_dir
+    """Use the current monthly SharePoint offline log directory; fall back to the legacy app folder only if needed."""
+    preferred = _monthly_log_root()
+    if os.path.isdir(preferred):
+        return preferred
+
+    if os.path.isdir(LEGACY_LOGS_DIR):
+        os.makedirs(LEGACY_LOGS_DIR, exist_ok=True)
+        return LEGACY_LOGS_DIR
+
+    os.makedirs(preferred, exist_ok=True)
+    return preferred
+
+
+def get_all_logs_dirs():
+    """Return every valid log root in the SharePoint archive, including the active month and historic month folders."""
+    dirs = []
+    candidates = [
+        _monthly_log_root(),
+        _year_log_root(),
+        ONEDRIVE_SHAREPOINT_PATH,
+        LEGACY_LOGS_DIR,
+    ]
+
+    for candidate in candidates:
+        if candidate and os.path.isdir(candidate):
+            dirs.append(candidate)
+
+    year_root = _year_log_root()
+    if os.path.isdir(year_root):
+        for child in sorted(os.listdir(year_root)):
+            child_path = os.path.join(year_root, child)
+            if os.path.isdir(child_path):
+                dirs.append(child_path)
+
+    unique_dirs = []
+    seen = set()
+    for candidate in dirs:
+        normalized = os.path.normpath(candidate)
+        if normalized not in seen:
+            seen.add(normalized)
+            unique_dirs.append(candidate)
+    return unique_dirs
 
 def get_resource_path(relative_path):
     """Returns the best available path to a bundled resource, including dev, frozen, and user-data locations."""

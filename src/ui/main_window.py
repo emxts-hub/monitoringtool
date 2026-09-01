@@ -9,7 +9,7 @@ from config import APP_VERSION, APP_NAME
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from PyQt6.QtCore import Qt, QTimer, QThreadPool, QCoreApplication, QPointF, QRectF, QDateTime
+from PyQt6.QtCore import Qt, QTimer, QThreadPool, QCoreApplication, QPointF, QRectF
 from PyQt6.QtGui import QColor, QFont, QCursor, QIcon, QPainter, QPen, QPolygonF, QBrush
 from PyQt6.QtWidgets import (
     QMainWindow, QTabWidget, QWidget, QVBoxLayout,
@@ -914,17 +914,19 @@ class GlobalAlertsWidget(QGroupBox):
         configured_lpars = total_lpars if total_lpars is not None else listed_lpars
 
         for sys_info in data_list:
-            status = sys_info.get("status", "").upper()
+            status = str(sys_info.get("status", "")).upper()
+            if status not in ("ONLINE", "DEGRADED", "OFFLINE", "AUTH_ERROR", "STALE"):
+                status = "OFFLINE"
 
             if status in ("ONLINE", "DEGRADED"):
                 active_lpars += 1
 
-                ports = sys_info.get("ports", [])
-                down_ports = [p for p in ports if not p.get("is_up")]
-                total_down_services += len(down_ports)
+            ports = sys_info.get("ports", [])
+            down_ports = [p for p in ports if isinstance(p, dict) and p.get("is_up") is False]
+            total_down_services += len(down_ports)
 
-                if float(sys_info.get("asp", 0.0)) >= 90.0:
-                    overloaded_servers.append(sys_info.get("server", ""))
+            if float(sys_info.get("asp", 0.0) or 0.0) >= 90.0 and status in ("ONLINE", "DEGRADED"):
+                overloaded_servers.append(str(sys_info.get("server") or sys_info.get("host_name") or ""))
 
         signature = (
             total_down_services,
@@ -992,13 +994,16 @@ class IBMiDashboard(QMainWindow):
 
         self.thread_pool = cast(QThreadPool, QThreadPool.globalInstance())
         self.thread_pool.setMaxThreadCount(8)
-        self.refresh_interval_ms = 30000
+        self.min_refresh_interval_ms = 10000  # Minimum 10s between refreshes per server
+        self.refresh_interval_ms = self.min_refresh_interval_ms
+        self.server_refresh_timers = {}  # Per-server refresh timers for independent refresh
         self._refresh_in_progress = False
         self._refresh_queued = False
         self.server_retry_counts = {}
         self.server_last_success = {}
         self.server_error_reasons = {}
         self.server_sync_durations_ms = {}
+        self.server_last_fetch_time = {}  # Track when each server last completed fetch
         self.stale_after_seconds = 90
         self.retry_backoff_seconds = 15
         self.max_retry_backoff_seconds = 120
@@ -1021,16 +1026,8 @@ class IBMiDashboard(QMainWindow):
         )
         self.log_viewer_widget.monthly_report_widget = self.monthly_report_widget
         setattr(self.monthly_report_widget, "parent_log_viewer", self.log_viewer_widget)
-        self.monthly_report_widget.set_last_sync_timestamp(
-            self.log_viewer_widget._last_online_sync
-        )
         self.monthly_report_widget.set_theme(self.is_dark_theme)
         self.tabs.addTab(self.monthly_report_widget, "📈 Monthly ASP/CPU Report")
-
-        self.timer = QTimer(self)
-        self.timer.setSingleShot(True)
-        self.timer.setInterval(self.refresh_interval_ms)
-        self.timer.timeout.connect(self.fetch_data)
 
         self.apply_theme_state()
 
@@ -1044,7 +1041,7 @@ class IBMiDashboard(QMainWindow):
 
     def _hide_sync_loading(self):
         if self.is_monitoring:
-            self.status_label.setText("Status: Live Metrics Updated. Auto-refresh in 30s...")
+            self.status_label.setText("Status: Live Metrics Updated. Cards refresh independently...")
             self.status_label.setStyleSheet("color: #8b949e; font-size: 11px; background-color: transparent;")
         else:
             self.status_label.setText("Status: Monitoring stopped. Credentials unlocked for editing.")
@@ -1199,10 +1196,10 @@ class IBMiDashboard(QMainWindow):
         main_layout.addWidget(scroll_area, stretch=1)
 
     def _server_refresh_interval_ms(self, server_name, result=None):
-        base = self.refresh_interval_ms
+        base = self.min_refresh_interval_ms
         retry_count = self.server_retry_counts.get(server_name, 0)
         if retry_count > 0:
-            base = min(max(8000, self.refresh_interval_ms // 2), 60000)
+            base = min(max(8000, self.min_refresh_interval_ms // 2), 60000)
             base = min(60000, max(8000, base + retry_count * 5000))
         if result is not None:
             status = str(result.get("status", "OFFLINE")).upper()
@@ -1210,16 +1207,16 @@ class IBMiDashboard(QMainWindow):
                 base = min(base, 20000)
             duration_ms = int(result.get("sync_duration_ms") or 0)
             if duration_ms >= 7000:
-                base = min(base, max(12000, self.refresh_interval_ms // 2))
+                base = min(base, max(12000, self.min_refresh_interval_ms // 2))
         return max(8000, int(base))
 
     def _next_retry_delay_ms(self):
         if not self.latest_results_cache:
-            return self.refresh_interval_ms
+            return self.min_refresh_interval_ms
         candidate_intervals = []
         for server_name, result in self.latest_results_cache.items():
             candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
-        return max(8000, min(candidate_intervals)) if candidate_intervals else self.refresh_interval_ms
+        return max(8000, min(candidate_intervals)) if candidate_intervals else self.min_refresh_interval_ms
 
     def _register_server_result(self, server_name, result):
         status = str(result.get("status", "OFFLINE")).upper()
@@ -1238,6 +1235,53 @@ class IBMiDashboard(QMainWindow):
             self.server_retry_counts[server_name] = self.server_retry_counts.get(server_name, 0) + 1
             self.server_last_success.setdefault(server_name, time.monotonic())
             self.server_error_reasons[server_name] = str(result.get("error") or status)
+
+    def _refresh_global_status_summary(self):
+        self.global_alerts.update_summary(
+            list(self.latest_results_cache.values()),
+            total_lpars=len(self.active_server_configs),
+        )
+        stale_count = sum(
+            1 for server_name, card in self.card_widgets.items()
+            if getattr(card, "current_status", "") == "STALE"
+        )
+        self.global_alerts.set_stale_count(stale_count)
+
+        retry_delay_ms = self._next_retry_delay_ms()
+        all_unreachable = bool(self.latest_results_cache) and all(
+            str(data.get("status", "OFFLINE")).upper() == "OFFLINE"
+            for data in self.latest_results_cache.values()
+        )
+        auth_error_systems = [
+            srv for srv, data in self.latest_results_cache.items()
+            if str(data.get("status", "OFFLINE")).upper() == "AUTH_ERROR"
+        ]
+
+        if self.auto_refresh_paused:
+            self.status_label.setText("Status: Auto-refresh paused. Resume when you are ready.")
+            self.status_label.setStyleSheet("color: #e3b341; font-weight: bold; font-size: 11px; background-color: transparent;")
+            self.retry_status_label.setVisible(False)
+        elif all_unreachable:
+            self.status_label.setText("⚠️ Network unreachable on all LPARs. Check your VPN connection.")
+            self.status_label.setStyleSheet("color: #f85149; font-weight: bold; font-size: 11px; background-color: transparent;")
+            self.retry_status_label.setText(f"Retrying in {max(5, retry_delay_ms // 1000)}s")
+            self.retry_status_label.setVisible(True)
+        elif auth_error_systems:
+            err_servers_str = ", ".join(auth_error_systems)
+            self.status_label.setText(
+                f"Error: Authentication failed / User profile disabled on: {err_servers_str}. Retrying in {max(5, retry_delay_ms // 1000)}s..."
+            )
+            self.status_label.setStyleSheet("color: #f85149; font-weight: bold; font-size: 11px; background-color: transparent;")
+            self.retry_status_label.setText(f"Retry backoff: {max(5, retry_delay_ms // 1000)}s")
+            self.retry_status_label.setVisible(True)
+        elif self.is_monitoring:
+            self.status_label.setText("Status: Live Metrics Updated. Cards refresh independently...")
+            self.status_label.setStyleSheet("color: #8b949e; font-size: 11px; background-color: transparent;")
+            self.retry_status_label.setVisible(False)
+        else:
+            self.status_label.setText("Status: Monitoring stopped. Credentials unlocked for editing.")
+            self.status_label.setStyleSheet("color: #8b949e; font-size: 11px; background-color: transparent;")
+            self.retry_status_label.setVisible(False)
 
     def update_stale_server_states(self):
         now = time.monotonic()
@@ -1528,8 +1572,9 @@ class IBMiDashboard(QMainWindow):
         self.update_toggle_button_style()
 
         self.refresh_widget.set_active_state(True)
-        self._show_sync_loading("Syncing data...")
-        self.fetch_data()
+        self._show_sync_loading("Starting independent server refreshes...")
+        self._schedule_independent_refreshes()
+        self._ensure_server_timers_alive()
 
     def stop_monitoring(self):
         self.is_monitoring = False
@@ -1537,7 +1582,9 @@ class IBMiDashboard(QMainWindow):
         self.refresh_generation += 1
         self._refresh_in_progress = False
         self._refresh_queued = False
-        self.timer.stop()
+        for timer in self.server_refresh_timers.values():
+            timer.stop()
+        self.server_refresh_timers.clear()
         self.retry_status_label.setVisible(False)
 
         for runnable in self.active_runnables:
@@ -1563,6 +1610,108 @@ class IBMiDashboard(QMainWindow):
         self.status_label.setText("Status: Monitoring stopped. Credentials unlocked for editing.")
         self.status_label.setStyleSheet("color: #8b949e; font-size: 11px; background-color: transparent;")
 
+    def _reschedule_server_timer(self, server_name, delay_ms=None):
+        """Create or refresh the timer for a single server without leaving a dead timer behind."""
+        if not self.is_monitoring or server_name not in self.active_server_configs:
+            return
+
+        if server_name in self.server_refresh_timers:
+            self.server_refresh_timers[server_name].stop()
+            self.server_refresh_timers[server_name].deleteLater()
+
+        timer = QTimer(self)
+        timer.setSingleShot(True)
+        if delay_ms is None:
+            if self.server_retry_counts.get(server_name, 0) > 0:
+                delay_ms = self._next_retry_delay_ms()
+            else:
+                delay_ms = self.min_refresh_interval_ms
+        timer.setInterval(delay_ms)
+        timer.timeout.connect(lambda srv=server_name: self._refresh_single_server(srv))
+        timer.start()
+        self.server_refresh_timers[server_name] = timer
+
+    def _schedule_independent_refreshes(self):
+        """Schedule independent per-server refresh timers based on fetch completion time."""
+        for idx, server_name in enumerate(self.active_server_configs.keys()):
+            base_delay = self.min_refresh_interval_ms + (idx * 500)
+            if self.server_retry_counts.get(server_name, 0) > 0:
+                base_delay = self._next_retry_delay_ms()
+            self._reschedule_server_timer(server_name, base_delay)
+
+    def _ensure_server_timers_alive(self):
+        if not self.is_monitoring:
+            return
+        for server_name in list(self.active_server_configs.keys()):
+            timer = self.server_refresh_timers.get(server_name)
+            if timer is None or not timer.isActive():
+                self._reschedule_server_timer(server_name)
+
+    def _refresh_single_server(self, server_name):
+        """Refresh a single server independently."""
+        if not self.is_monitoring or self.auto_refresh_paused:
+            return
+        
+        if server_name not in self.active_server_configs:
+            return
+        
+        username = self.user_input.text().strip()
+        password = self.pass_input.text().strip()
+        
+        if not username or not password:
+            return
+        
+        cfg = self.active_server_configs[server_name]
+        runnable = SingleLparRunnable(
+            server_name,
+            cfg,
+            username,
+            password,
+            cancel_event=threading.Event(),
+        )
+        self.active_runnables.add(runnable)
+        generation = self.refresh_generation
+        runnable.signals.server_fetched.connect(
+            lambda data, gen=generation, task=runnable, srv=server_name:
+                self._on_single_server_fetched_independent(data, gen, task, srv)
+        )
+        self.thread_pool.start(runnable)
+
+    def _on_single_server_fetched_independent(self, lpar_data, generation, runnable, server_name):
+        """Handle individual server fetch completion and schedule next refresh for that server."""
+        self.active_runnables.discard(runnable)
+        if not self.is_monitoring or generation != self.refresh_generation:
+            return
+
+        config_key = lpar_data.get("config_key") or lpar_data.get("server") or runnable.server
+        self.latest_results_cache[config_key] = lpar_data
+        self.server_last_fetch_time[server_name] = time.monotonic()
+        self._register_server_result(config_key, lpar_data)
+
+        live_server_names = {
+            str(data.get("server") or key): {}
+            for key, data in self.latest_results_cache.items()
+        }
+        if live_server_names:
+            self.log_viewer_widget.load_log_history(live_server_names)
+
+        if config_key in self.card_widgets:
+            card = self.card_widgets[config_key]
+            card.retry_count = self.server_retry_counts.get(config_key, 0)
+            card.last_error_reason = self.server_error_reasons.get(config_key, str(lpar_data.get("error") or ""))
+            card.sync_duration_ms = int(self.server_sync_durations_ms.get(config_key, 0))
+            if str(lpar_data.get("status", "OFFLINE")).upper() in ("ONLINE", "DEGRADED"):
+                card.last_success_ts = time.strftime("%H:%M:%S")
+            card.update_data(lpar_data)
+            card._sync_health_summary()
+
+        self._refresh_global_status_summary()
+
+        retry_delay = self._next_retry_delay_ms() if self.server_retry_counts.get(server_name, 0) > 0 else self.min_refresh_interval_ms
+        self._reschedule_server_timer(server_name, retry_delay)
+        self._ensure_server_timers_alive()
+        self._hide_sync_loading()
+
     def fetch_data(self, force=False):
         if not self.is_monitoring:
             return
@@ -1581,7 +1730,6 @@ class IBMiDashboard(QMainWindow):
                 if self.log_viewer_widget._normalize_server_name(name)
             })
         self._refresh_in_progress = True
-        self.timer.stop()
         self._show_sync_loading("Syncing data...")
         self.last_refresh_started_at = time.monotonic()
 
@@ -1662,13 +1810,8 @@ class IBMiDashboard(QMainWindow):
                 card.sync_duration_ms = int(self.server_sync_durations_ms.get(server_name, 0))
                 card._sync_health_summary()
 
-        self.global_alerts.update_summary(
-            list(self.latest_results_cache.values()),
-            total_lpars=len(self.active_server_configs),
-        )
         self.update_stale_server_states()
-        stale_count = sum(1 for server_name, card in self.card_widgets.items() if card.current_status == "STALE")
-        self.global_alerts.set_stale_count(stale_count)
+        self._refresh_global_status_summary()
 
         now = time.monotonic()
         should_refresh_history = (
@@ -1682,41 +1825,8 @@ class IBMiDashboard(QMainWindow):
         if not self._refresh_in_progress and not self.active_runnables:
             self._hide_sync_loading()
 
-        all_unreachable = all(
-            data.get("status") == "OFFLINE" for data in self.latest_results_cache.values()
-        ) and len(self.latest_results_cache) > 0
-
-        auth_error_systems = [
-            srv for srv, data in self.latest_results_cache.items() 
-            if data.get("status") == "AUTH_ERROR"
-        ]
-
-        retry_delay_ms = self._next_retry_delay_ms()
-        if self.auto_refresh_paused:
-            self.status_label.setText("Status: Auto-refresh paused. Resume when you are ready.")
-            self.status_label.setStyleSheet("color: #e3b341; font-weight: bold; font-size: 11px; background-color: transparent;")
-            self.retry_status_label.setVisible(False)
-        elif all_unreachable:
-            self.status_label.setText("⚠️ Network unreachable on all LPARs. Check your VPN connection.")
-            self.status_label.setStyleSheet("color: #f85149; font-weight: bold; font-size: 11px; background-color: transparent;")
-            self.retry_status_label.setText(f"Retrying in {max(5, retry_delay_ms // 1000)}s")
-            self.retry_status_label.setVisible(True)
-        elif auth_error_systems:
-            err_servers_str = ", ".join(auth_error_systems)
-            self.status_label.setText(
-                f"Error: Authentication failed / User profile disabled on: {err_servers_str}. Retrying in {max(5, retry_delay_ms // 1000)}s..."
-            )
-            self.status_label.setStyleSheet("color: #f85149; font-weight: bold; font-size: 11px; background-color: transparent;")
-            self.retry_status_label.setText(f"Retry backoff: {max(5, retry_delay_ms // 1000)}s")
-            self.retry_status_label.setVisible(True)
-        else:
-            self.status_label.setText("Status: Live Metrics Updated. Auto-refresh in 30s...")
-            self.status_label.setStyleSheet("color: #8b949e; font-size: 11px; background-color: transparent;")
-            self.retry_status_label.setVisible(False)
-
         if self.is_monitoring and not self.auto_refresh_paused:
-            next_interval = self._next_retry_delay_ms() if (auth_error_systems or all_unreachable or self.server_retry_counts) else self.refresh_interval_ms
-            self.timer.start(next_interval)
+            self._schedule_independent_refreshes()
 
         if self._refresh_queued:
             self._refresh_queued = False

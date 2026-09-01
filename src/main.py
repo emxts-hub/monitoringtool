@@ -4,7 +4,7 @@ import sys
 import os
 import ctypes
 import traceback
-from PyQt6.QtWidgets import QApplication, QMessageBox
+from PyQt6.QtWidgets import QApplication
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import QTimer
 
@@ -49,14 +49,13 @@ sys.excepthook = log_exception
 def resource_path(relative_path):
     return get_resource_path(relative_path)
 
-
 def main():
     try:
         # 1. Initialize QApplication FIRST
         app = QApplication(sys.argv)
         app.setProperty("is_dark_theme", False)
         app.setStyleSheet(LIGHT_STYLESHEET)
-        
+
         app_icon = QIcon(resource_path("logo.png"))
         app.setWindowIcon(app_icon)
 

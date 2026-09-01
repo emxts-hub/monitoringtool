@@ -27,24 +27,17 @@ jobs:
 
       - name: Build Executable with PyInstaller
         run: |
-          pyinstaller --noconsole --onefile --name WinMacOS --paths=src --add-data "src/alert.wav;src" --icon=src/logo.ico --collect-all PyQt6 src/main.py
+          pyinstaller --noconsole --onefile --name WinMacOS --paths=src --add-data "src/alert.wav;src" "src/ngani.wav;src" --icon=src/logo.ico --collect-all PyQt6 src/main.py
 
       - name: Install Inno Setup
         run: |
           choco install innosetup --no-progress -y
 
-      - name: Prepare test Firebase credential
-        env:
-          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-        shell: pwsh
-        run: |
-          if ([string]::IsNullOrWhiteSpace($env:FIREBASE_SERVICE_ACCOUNT_JSON)) {
-            throw "The FIREBASE_SERVICE_ACCOUNT_JSON repository secret is not configured."
-          }
-          Set-Content -Path service-account.json -Value $env:FIREBASE_SERVICE_ACCOUNT_JSON -Encoding utf8
-
       - name: Build Installer
         run: |
+          if (Test-Path service-account.json) {
+            Remove-Item service-account.json -Force
+          }
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" setup.iss
 
       - name: Create GitHub Release

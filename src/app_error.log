@@ -1,0 +1,1936 @@
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\worker.py", line 629, in run
+    self.signals.server_fetched.emit(result)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: wrapped C/C++ object of type LparWorkerSignals has been deleted
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\worker.py", line 509, in run
+    self.signals.server_fetched.emit(result)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: wrapped C/C++ object of type LparWorkerSignals has been deleted
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\worker.py", line 509, in run
+    active_subsystems.append({
+    ^^^^^^^^^^^^^^^^^^^
+RuntimeError: wrapped C/C++ object of type LparWorkerSignals has been deleted
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1699, in <lambda>
+    lambda data, generation=cycle_id, task=runnable:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1732, in on_single_lpar_fetched
+    if self.completed_threads_count >= self.pending_lpar_count:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1775, in on_all_lpars_finished
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1215, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1196, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1608, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1646, in _on_single_server_fetched_independent
+    retry_delay = self._next_retry_delay_ms() if self.server_retry_counts.get(server_name, 0) > 0 else self.min_refresh_interval_ms
+                  ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1215, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1196, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1608, in <lambda>
+    self.refresh_widget.set_active_state(False)
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1646, in _on_single_server_fetched_independent
+    runnable = SingleLparRunnable(
+                  ^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1215, in _next_retry_delay_ms
+    candidate_intervals = []
+    
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1196, in _server_refresh_interval_ms
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1657, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1689, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1675, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1707, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1675, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1707, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1675, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1707, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1675, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1707, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1675, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1707, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1675, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1707, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1675, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1707, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1675, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1707, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1675, in <lambda>
+    self._on_single_server_fetched_independent(data, gen, task, srv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1707, in _on_single_server_fetched_independent
+    self._refresh_global_status_summary()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1249, in _refresh_global_status_summary
+    retry_delay_ms = self._next_retry_delay_ms()
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1217, in _next_retry_delay_ms
+    candidate_intervals.append(self._server_refresh_interval_ms(server_name, result))
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\main_window.py", line 1198, in _server_refresh_interval_ms
+    base = self.refresh_interval_ms
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'IBMiDashboard' object has no attribute 'refresh_interval_ms'. Did you mean: 'min_refresh_interval_ms'?
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\worker.py", line 728, in run
+    self.signals.server_fetched.emit(result)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: wrapped C/C++ object of type LparWorkerSignals has been deleted
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\worker.py", line 728, in run
+    self.signals.server_fetched.emit(result)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: wrapped C/C++ object of type LparWorkerSignals has been deleted
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\worker.py", line 728, in run
+    self.signals.server_fetched.emit(result)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: wrapped C/C++ object of type LparWorkerSignals has been deleted
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\log_viewer.py", line 101, in run
+    self.signals.finished.emit({
+    ^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: wrapped C/C++ object of type LogHistoryLoadSignals has been deleted
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\worker.py", line 728, in run
+    self.signals.server_fetched.emit(result)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: wrapped C/C++ object of type LparWorkerSignals has been deleted
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 302, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 358, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 486, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 546, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 305, in <lambda>
+    btn.clicked.connect(lambda _, key=f"{metric_name}:{label}": self._on_toggle_change(key))
+                                                                ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 361, in _on_toggle_change
+    self.refresh_report()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined
+
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 544, in refresh_report
+    report = self._build_month_report(month_key, self.cpu_chart.mode)
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\ui\monthly_report.py", line 604, in _build_month_report
+    day_values = defaultdict(lambda: {"cpu": defaultdict(list), "asp": defaultdict(list)})
+                 ^^^^^^^^^^^
+NameError: name 'defaultdict' is not defined

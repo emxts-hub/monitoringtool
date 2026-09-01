@@ -1,17 +1,11 @@
-# ui/log_viewer.py
-
 import os
-import sys
 import json
 import csv
 import ast
 import re
 from typing import TYPE_CHECKING
-from calendar import monthrange
-from collections import defaultdict
-from datetime import datetime, timedelta, date
-from firebase_store import delete_logs_older_than, read_recent_logs, sync_pending_logs
-from PyQt6.QtCore import Qt, QTimer, QFileSystemWatcher, QObject, QRunnable, QThreadPool, QThread, pyqtSignal
+from datetime import datetime, date
+from PyQt6.QtCore import Qt, QTimer, QFileSystemWatcher, QObject, QRunnable, QThreadPool, pyqtSignal
 from PyQt6.QtGui import QColor, QFont, QCursor, QPainter, QPen
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, 
@@ -19,56 +13,54 @@ from PyQt6.QtWidgets import (
     QAbstractItemView, QScrollArea, QFrame, QFileDialog, QMessageBox, 
     QApplication, QDialog, QGridLayout
 )
-from config import get_logs_dir
+from config import get_logs_dir, get_all_logs_dirs
 
 if TYPE_CHECKING:
     from ui.monthly_report import MonthlyReportWidget
 
-class FirebaseCleanupWorker(QRunnable):
-    """Deletes Firebase logs older than 35 days safely in background."""
-    def run(self):
+
+class LoadingOverlay(QWidget):
+    """Semi-transparent overlay displayed while log operations are in progress."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, False)
+        self.is_dark_theme = True
+
+    def set_theme(self, is_dark_theme):
+        self.is_dark_theme = is_dark_theme
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
         try:
-            cutoff_time = datetime.now() - timedelta(days=35)
-            delete_logs_older_than(cutoff_time.strftime("%Y-%m-%d %H:%M:%S"))
-        except Exception as e:
-            print(f"Background Firestore cleanup warning: {e}")
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            mask_color = QColor(13, 17, 23, 180) if self.is_dark_theme else QColor(246, 248, 250, 180)
+            painter.fillRect(self.rect(), mask_color)
 
+            card_width, card_height = 200, 60
+            cx, cy = self.rect().center().x(), self.rect().center().y()
+            card_rect = (cx - card_width // 2, cy - card_height // 2, card_width, card_height)
 
-class FirebaseInitialFetchWorker(QThread):
-    """Background worker that fetches recent Firebase logs at launch via Signals."""
-    log_fetched = pyqtSignal(dict)
+            bg_color = QColor("#161b22") if self.is_dark_theme else QColor("#ffffff")
+            border_color = QColor("#30363d") if self.is_dark_theme else QColor("#d0d7de")
+            text_color = QColor("#f0f6fc") if self.is_dark_theme else QColor("#1f2937")
 
-    def run(self):
-        try:
-            sync_pending_logs()
-            for node in reversed(read_recent_logs(200)):
-                self.log_fetched.emit(node)
-        except Exception as e:
-            print(f"Failed to sync pending logs or fetch Firestore logs: {e}")
+            painter.setPen(QPen(border_color, 1))
+            painter.setBrush(bg_color)
+            painter.drawRoundedRect(*card_rect, 8, 8)
 
-
-class FirebaseStreamWorker(QThread):
-    """Polls the recent Firebase log slice so the live viewer updates on every sync without loading the whole history."""
-    log_received = pyqtSignal(dict)
-
-    def __init__(self, firebase_db_url=None, poll_interval_seconds=1800):
-        super().__init__()
-        self.poll_interval_seconds = max(1, int(poll_interval_seconds))
-        self._is_running = True
-
-    def run(self):
-        while self._is_running:
-            try:
-                sync_pending_logs()
-                for node in reversed(read_recent_logs(200)):
-                    self.log_received.emit(node)
-            except Exception as e:
-                print(f"Firestore sync poll error: {e}")
-            self.msleep(self.poll_interval_seconds * 1000)
-
-    def stop(self):
-        self._is_running = False
-        self.wait()
+            painter.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+            painter.setPen(text_color)
+            painter.drawText(
+                cx - card_width // 2,
+                cy - card_height // 2,
+                card_width,
+                card_height,
+                Qt.AlignmentFlag.AlignCenter,
+                "Loading log data...",
+            )
+        finally:
+            painter.end()
 
 
 class LogHistoryLoadSignals(QObject):
@@ -76,9 +68,9 @@ class LogHistoryLoadSignals(QObject):
 
 
 class LogHistoryLoader(QRunnable):
-    def __init__(self, target_dir, active_lpars, signals):
+    def __init__(self, target_dirs, active_lpars, signals):
         super().__init__()
-        self.target_dir = target_dir
+        self.target_dirs = list(target_dirs or [])
         self.active_lpars = sorted({
             LogViewerWidget._normalize_server_name(name)
             for name in active_lpars
@@ -89,16 +81,19 @@ class LogHistoryLoader(QRunnable):
     def run(self):
         log_data_store = {}
         processed_batches = set()
+        discovered_lpars = set(self.active_lpars)
 
-        if os.path.exists(self.target_dir):
+        for target_dir in self.target_dirs:
+            if not os.path.exists(target_dir):
+                continue
             files = [
-                f for f in os.listdir(self.target_dir)
+                f for f in os.listdir(target_dir)
                 if f.endswith(".json") and f.startswith("lpar_history_")
             ]
             files.sort()
 
             for file_name in files:
-                file_path = os.path.join(self.target_dir, file_name)
+                file_path = os.path.join(target_dir, file_name)
                 try:
                     with open(file_path, "r", encoding="utf-8") as f:
                         data = json.load(f)
@@ -127,12 +122,21 @@ class LogHistoryLoader(QRunnable):
                         if date_key not in log_data_store:
                             log_data_store[date_key] = []
 
+                        for record in records:
+                            if isinstance(record, dict):
+                                name = LogViewerWidget._normalize_server_name(
+                                    record.get("host_name") or record.get("server_name") or
+                                    record.get("lpar") or record.get("server")
+                                )
+                                if name:
+                                    discovered_lpars.add(name)
+
                         record_ids = ",".join(
                             str(record.get("entry_id", ""))
                             for record in records
                             if isinstance(record, dict)
                         )
-                        batch_signature = f"{file_name}_{date_key}_{ts}_{record_ids or batch_index}"
+                        batch_signature = f"{target_dir}_{file_name}_{date_key}_{ts}_{record_ids or batch_index}"
                         if batch_signature not in processed_batches:
                             log_data_store[date_key].append((ts, records))
                             processed_batches.add(batch_signature)
@@ -142,7 +146,7 @@ class LogHistoryLoader(QRunnable):
         self.signals.finished.emit({
             "log_data_store": log_data_store,
             "processed_batches": processed_batches,
-            "active_lpars": self.active_lpars,
+            "active_lpars": sorted(discovered_lpars),
         })
 
 
@@ -183,7 +187,6 @@ class LogViewerWidget(QWidget):
         super().__init__(parent)
         self.is_dark_theme = True
         self.log_data_store = {}
-        self.firebase_log_data_store = {}
         self.monthly_report_widget = None
         self._processed_batches = set()
         self.max_history_days = 45
@@ -196,7 +199,6 @@ class LogViewerWidget(QWidget):
         self._history_thread_pool = QThreadPool.globalInstance()
         self._last_log_scan_signature = None
         self._last_active_lpars_signature = None
-        self._last_online_sync = None
         self._date_selected_by_user = False
 
         main_layout = QVBoxLayout(self)
@@ -256,11 +258,6 @@ class LogViewerWidget(QWidget):
         self.last_refresh_label.setFont(self._make_font("Segoe UI", 9, QFont.Weight.Normal))
         self.last_refresh_label.setStyleSheet("color: #8b949e; margin-right: 8px;")
         header_bar.addWidget(self.last_refresh_label)
-
-        self.last_online_sync_label = QLabel("Last synced online: Never")
-        self.last_online_sync_label.setFont(self._make_font("Segoe UI", 9, QFont.Weight.Normal))
-        self.last_online_sync_label.setStyleSheet("color: #8b949e; margin-right: 8px;")
-        header_bar.addWidget(self.last_online_sync_label)
 
         date_lbl = QLabel("Select Date:")
         date_lbl.setFont(self._make_font("Segoe UI", 10, QFont.Weight.Bold))
@@ -322,7 +319,11 @@ class LogViewerWidget(QWidget):
         scroll.setWidget(container)
         main_layout.addWidget(scroll)
 
-        # File watcher backup setup
+        # Loading Overlay setup
+        self.loading_overlay = LoadingOverlay(self)
+        self.loading_overlay.hide()
+
+        # File watcher setup
         self.reload_timer = QTimer(self)
         self.reload_timer.setSingleShot(True)
         self.reload_timer.setInterval(1000)
@@ -334,20 +335,27 @@ class LogViewerWidget(QWidget):
 
         self._setup_file_watcher()
 
-        # Asynchronous initializations to avoid main thread freeze
+        # 1-Second Auto Refresh Timer
+        self.auto_refresh_timer = QTimer(self)
+        self.auto_refresh_timer.setInterval(1000)
+        self.auto_refresh_timer.timeout.connect(self.load_log_history)
+        self.auto_refresh_timer.start()
+
+        # Initial loading call
         QTimer.singleShot(50, self.load_log_history)
-        if self._history_thread_pool is not None:
-            self._history_thread_pool.start(FirebaseCleanupWorker())
 
-        # Fetch existing Firebase logs asynchronously on startup via QThread
-        self.fetch_worker = FirebaseInitialFetchWorker()
-        self.fetch_worker.log_fetched.connect(self._on_firebase_log_received)
-        self.fetch_worker.start()
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, "loading_overlay"):
+            self.loading_overlay.setGeometry(self.rect())
 
-        # Poll Firestore every 10 minutes; manual refresh remains available.
-        self.firebase_thread = FirebaseStreamWorker()
-        self.firebase_thread.log_received.connect(self._on_firebase_log_received)
-        self.firebase_thread.start()
+    def _show_loading(self):
+        self.loading_overlay.setGeometry(self.rect())
+        self.loading_overlay.show()
+        self.loading_overlay.raise_()
+
+    def _hide_loading(self):
+        self.loading_overlay.hide()
 
     def _prune_log_store(self, store):
         if not store:
@@ -369,13 +377,7 @@ class LogViewerWidget(QWidget):
             total_batches = sum(len(batches) for batches in store.values())
 
     def get_combined_log_data_store(self):
-        """Return local and Firebase history without replacing either source."""
-        local_store = self.log_data_store
-        online_store = self.firebase_log_data_store
-        merged = {**local_store, **online_store}
-        for key in set(local_store) | set(online_store):
-            merged[key] = local_store.get(key, []) + online_store.get(key, [])
-        return merged
+        return self.log_data_store
 
     def _same_hourly_server_record(self, ts, records, server_name, target_hour):
         if not ts or not server_name:
@@ -401,117 +403,6 @@ class LogViewerWidget(QWidget):
                     return True
         return False
 
-    def _on_firebase_log_received(self, log_entry):
-        """Processes and standardizes incoming log records from Firebase."""
-        if not isinstance(log_entry, dict):
-            return
-
-        ts = log_entry.get("timestamp", "")
-        records = log_entry.get("records", [])
-
-        if not records and ("lpar" in log_entry or "server" in log_entry):
-            records = [log_entry]
-
-        if not ts and records:
-            ts = records[0].get("timestamp", "")
-
-        if not ts:
-            return
-
-        date_key = ts[:10] if len(ts) >= 10 else date.today().strftime("%Y-%m-%d")
-
-        if date_key not in self.log_data_store:
-            self.log_data_store[date_key] = []
-        if date_key not in self.firebase_log_data_store:
-            self.firebase_log_data_store[date_key] = []
-
-        batch_tuple = (ts, records)
-        def record_server_name(record):
-            if not isinstance(record, dict):
-                return ""
-            for candidate in (
-                record.get("host_name"),
-                record.get("server_name"),
-                record.get("lpar"),
-                record.get("server"),
-                record.get("config_key"),
-            ):
-                normalized = self._normalize_server_name(candidate)
-                if normalized:
-                    return normalized
-            return ""
-
-        if date_key not in self.log_data_store:
-            self.log_data_store[date_key] = []
-        if batch_tuple not in self.log_data_store[date_key]:
-            self.log_data_store[date_key].append(batch_tuple)
-
-        if date_key not in self.firebase_log_data_store:
-            self.firebase_log_data_store[date_key] = []
-        if len(ts) >= 13:
-            target_hour = ts[:13]
-            new_records = []
-            for record in records:
-                server_name = record_server_name(record)
-                if not server_name:
-                    new_records.append(record)
-                    continue
-                existing_same_hour = any(
-                    self._same_hourly_server_record(
-                        existing_ts,
-                        existing_records,
-                        server_name,
-                        target_hour,
-                    )
-                    for existing_ts, existing_records
-                    in self.firebase_log_data_store[date_key]
-                )
-                if not existing_same_hour:
-                    new_records.append(record)
-            if new_records:
-                self.firebase_log_data_store[date_key].append((ts, new_records))
-        elif batch_tuple not in self.firebase_log_data_store[date_key]:
-            self.firebase_log_data_store[date_key].append(batch_tuple)
-
-        self._prune_log_store(self.log_data_store)
-        self._prune_log_store(self.firebase_log_data_store)
-
-        # Ensure dynamically registered LPARs from Firebase appear in active list
-        for rec in records:
-            if isinstance(rec, dict):
-                lpar_name = self._normalize_server_name(
-                    rec.get("host_name")
-                    or rec.get("server_name")
-                    or rec.get("lpar")
-                    or rec.get("server")
-                )
-                if lpar_name and lpar_name not in self.active_lpars:
-                    self.active_lpars.append(lpar_name)
-                    self.active_lpars.sort()
-
-        current_selection = self.date_combo.currentText()
-        available_dates = sorted(self.log_data_store.keys(), reverse=True)
-        today_key = date.today().strftime("%Y-%m-%d")
-
-        self.date_combo.blockSignals(True)
-        self.date_combo.clear()
-        self.date_combo.addItems(available_dates)
-
-        if self._date_selected_by_user and current_selection in available_dates:
-            self.date_combo.setCurrentText(current_selection)
-        elif today_key in available_dates:
-            self.date_combo.setCurrentText(today_key)
-        elif available_dates:
-            self.date_combo.setCurrentIndex(0)
-
-        self.date_combo.blockSignals(False)
-
-        if self.get_selected_date() == date_key or not current_selection:
-            self.populate_views()
-
-        self._update_last_online_sync_timestamp()
-        self._update_last_refresh_timestamp()
-
     def set_theme(self, is_dark_theme):
         self.is_dark_theme = is_dark_theme
         if is_dark_theme:
@@ -534,12 +425,14 @@ class LogViewerWidget(QWidget):
         self._apply_table_styling(self.asp_table)
         self._apply_table_styling(self.cpu_table)
         self._apply_table_styling(self.stream_table)
+        if hasattr(self, "loading_overlay"):
+            self.loading_overlay.set_theme(is_dark_theme)
         self.populate_views()
 
     def _setup_file_watcher(self):
-        logs_dir = get_logs_dir()
-        if os.path.exists(logs_dir) and logs_dir not in self.file_watcher.directories():
-            self.file_watcher.addPath(logs_dir)
+        for logs_dir in get_all_logs_dirs():
+            if os.path.exists(logs_dir) and logs_dir not in self.file_watcher.directories():
+                self.file_watcher.addPath(logs_dir)
 
     def _on_logs_changed(self, path):
         self._setup_file_watcher()
@@ -548,12 +441,6 @@ class LogViewerWidget(QWidget):
     def _update_last_refresh_timestamp(self):
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.last_refresh_label.setText(f"Last updated: {now_str}")
-
-    def _update_last_online_sync_timestamp(self):
-        self._last_online_sync = datetime.now()
-        self.last_online_sync_label.setText(
-            f"Last synced online: {self._last_online_sync.strftime('%Y-%m-%d %H:%M:%S')}"
-        )
 
     def _create_section_header(self, text):
         lbl = QLabel(text)
@@ -661,6 +548,9 @@ class LogViewerWidget(QWidget):
         ]
         self.active_lpars = sorted({name for name in normalized_active if name})
 
+        if self.monthly_report_widget is not None:
+            self.monthly_report_widget.set_log_data_store(self.log_data_store, source_mode="local")
+
         current_selection = self.date_combo.currentText()
         today_key = date.today().strftime("%Y-%m-%d")
         self.date_combo.blockSignals(True)
@@ -681,23 +571,23 @@ class LogViewerWidget(QWidget):
         self.date_combo.blockSignals(False)
         self.populate_views()
         self._update_last_refresh_timestamp()
+        self._hide_loading()
 
     def _compute_log_scan_signature(self):
-        target_dir = get_logs_dir()
-        if not os.path.exists(target_dir):
-            return None
-
-        files = [
-            f for f in os.listdir(target_dir)
-            if f.endswith(".json") and f.startswith("lpar_history_")
-        ]
         signature = {}
-        for file_name in sorted(files):
-            path = os.path.join(target_dir, file_name)
-            try:
-                signature[file_name] = (os.path.getmtime(path), os.path.getsize(path))
-            except OSError:
+        for target_dir in get_all_logs_dirs():
+            if not os.path.exists(target_dir):
                 continue
+            files = [
+                f for f in os.listdir(target_dir)
+                if f.endswith(".json") and f.startswith("lpar_history_")
+            ]
+            for file_name in sorted(files):
+                path = os.path.join(target_dir, file_name)
+                try:
+                    signature[f"{target_dir}/{file_name}"] = (os.path.getmtime(path), os.path.getsize(path))
+                except OSError:
+                    continue
         return signature
 
     def load_log_history(self, active_server_configs=None):
@@ -709,14 +599,6 @@ class LogViewerWidget(QWidget):
             })
             if normalized_names:
                 self.active_lpars = normalized_names
-            elif self.active_lpars:
-                normalized_names = list(self.active_lpars)
-            else:
-                self.active_lpars = []
-        elif not self.active_lpars:
-            self.active_lpars = []
-            self._update_last_refresh_timestamp()
-            return
 
         active_signature = tuple(self.active_lpars)
         scan_signature = self._compute_log_scan_signature()
@@ -731,29 +613,31 @@ class LogViewerWidget(QWidget):
         self._history_loading = True
         self._last_log_scan_signature = scan_signature
         self._last_active_lpars_signature = active_signature
+        self._show_loading()
 
-        target_dir = get_logs_dir()
-        if os.path.exists(target_dir):
-            for file_name in os.listdir(target_dir):
-                file_path = os.path.join(target_dir, file_name)
-                if file_path not in self.file_watcher.files():
-                    try:
-                        self.file_watcher.addPath(file_path)
-                    except Exception:
-                        pass
+        for target_dir in get_all_logs_dirs():
+            if os.path.exists(target_dir):
+                for file_name in os.listdir(target_dir):
+                    file_path = os.path.join(target_dir, file_name)
+                    if file_path not in self.file_watcher.files():
+                        try:
+                            self.file_watcher.addPath(file_path)
+                        except Exception:
+                            pass
 
-        # Safely instantiate Signal object on Main Thread before starting QRunnable
         self.history_signals = LogHistoryLoadSignals()
         self.history_signals.finished.connect(self._on_history_loaded)
 
-        loader = LogHistoryLoader(target_dir, self.active_lpars, self.history_signals)
+        loader = LogHistoryLoader(get_all_logs_dirs(), self.active_lpars, self.history_signals)
         if self._history_thread_pool is not None:
             self._history_thread_pool.start(loader)
 
     def on_date_changed(self):
         if not self.date_combo.signalsBlocked():
             self._date_selected_by_user = True
+        self._show_loading()
         self.populate_views()
+        QTimer.singleShot(150, self._hide_loading)
 
     def populate_views(self):
         valid_lpars = [
@@ -769,10 +653,9 @@ class LogViewerWidget(QWidget):
 
         self.title_label.setText(f"IBM i LPAR Daily Summary ({selected_date})")
         self._update_table_heights()
-        if self._last_online_sync is not None:
-            self.last_online_sync_label.setText(
-                f"Last synced online: {self._last_online_sync.strftime('%Y-%m-%d %H:%M:%S')}"
-            )
+
+        combined_store = self.get_combined_log_data_store()
+        day_batches = combined_store.get(selected_date, [])
 
         if not self.active_lpars:
             if self.log_data_store:
@@ -783,13 +666,11 @@ class LogViewerWidget(QWidget):
                     self.date_combo.setCurrentIndex(0)
             self.asp_table.setRowCount(0)
             self.cpu_table.setRowCount(0)
-            self.stream_table.setRowCount(0)
+            self._fill_stream_table(day_batches)
             return
 
         asp_matrix = {lpar: ["N/A%"] * 24 for lpar in self.active_lpars}
         cpu_matrix = {lpar: ["N/A%"] * 24 for lpar in self.active_lpars}
-
-        day_batches = self.log_data_store.get(selected_date, [])
 
         seen_usage_slots = set()
         for ts, records in day_batches:
@@ -951,9 +832,17 @@ class LogViewerWidget(QWidget):
 
             sub_count = f" {subs_summary}" if subs_summary else f"{len(subs_detail)} Active"
             sub_btn = QPushButton(sub_count)
+            sub_btn.subs_detail = subs_detail
             sub_btn.setFlat(True)
             sub_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
             sub_btn.setStyleSheet("QPushButton { color: #58a6ff; font-size: 11px; font-weight: bold; border: none; text-decoration: underline; }")
+            
+            # Disable button if no subsystems to display
+            if not subs_detail:
+                sub_btn.setEnabled(False)
+                sub_btn.setCursor(QCursor(Qt.CursorShape.ArrowCursor))
+                sub_btn.setStyleSheet("QPushButton { color: #6e7681; font-size: 11px; font-weight: bold; border: none; }")
+            
             expected_key = rec.get("config_key") or lpar
             sub_btn.clicked.connect(
                 lambda _, l=lpar, d=subs_detail, k=expected_key:
@@ -1194,6 +1083,10 @@ class LogViewerWidget(QWidget):
     def _show_subsystems_dialog(self, lpar_name, subsystems, expected_key=None):
         from config import EXPECTED_SUBSYSTEMS
 
+        # Don't show dialog if there are no subsystems to display
+        if not subsystems:
+            return
+
         dialog = QDialog(self)
         dialog.setWindowTitle(f"Subsystem Status - {lpar_name}")
         dialog.setMinimumWidth(480)
@@ -1213,7 +1106,7 @@ class LogViewerWidget(QWidget):
         grid = QGridLayout(grid_widget)
         grid.setSpacing(6)
 
-        active_map = {}
+        all_display_items = []
         for sub in subsystems:
             sub_name = ""
             status = "ACTIVE"
@@ -1237,36 +1130,13 @@ class LogViewerWidget(QWidget):
                 sub_name = str(sub)
 
             clean_name = str(sub_name).strip().upper()
-            if clean_name:
-                active_map[clean_name] = status
+            if not clean_name:
+                continue
+            is_down = status in ["INACTIVE", "DOWN", "INACTIVE/OFF", "OFF"]
+            all_display_items.append((clean_name, is_down))
 
-        lookup_keys = [expected_key, lpar_name]
-        expected_list = []
-        for lookup_key in lookup_keys:
-            if lookup_key in EXPECTED_SUBSYSTEMS:
-                expected_list = EXPECTED_SUBSYSTEMS.get(lookup_key, [])
-                break
-        expected_list = [
-            str(name).strip()
-            for name in expected_list
-            if str(name).strip()
-        ]
-        expected_names = {name.upper() for name in expected_list}
-        all_display_items = []
-
-        for exp in expected_list:
-            exp_upper = exp.upper()
-            if exp_upper in active_map:
-                st = active_map[exp_upper]
-                is_down = st in ["INACTIVE", "DOWN", "INACTIVE/OFF", "OFF"]
-                all_display_items.append((exp_upper, is_down))
-            else:
-                all_display_items.append((exp_upper, True))
-
-        for act_name, st in active_map.items():
-            if act_name not in expected_names:
-                is_down = st in ["INACTIVE", "DOWN", "INACTIVE/OFF", "OFF"]
-                all_display_items.append((act_name, is_down))
+        if not all_display_items:
+            return
 
         for idx, (sub_name, is_down) in enumerate(all_display_items):
             if is_down:
@@ -1295,11 +1165,8 @@ class LogViewerWidget(QWidget):
         dialog.exec()
 
     def closeEvent(self, a0):
-        if hasattr(self, 'firebase_thread') and self.firebase_thread.isRunning():
-            self.firebase_thread.stop()
-        if hasattr(self, 'fetch_worker') and self.fetch_worker.isRunning():
-            self.fetch_worker.quit()
-            self.fetch_worker.wait()
+        if hasattr(self, "auto_refresh_timer"):
+            self.auto_refresh_timer.stop()
         super().closeEvent(a0)
 
     def get_selected_date(self) -> str:
