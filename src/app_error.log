@@ -1935,3 +1935,9 @@ Traceback (most recent call last):
                  ^^^^^^^^^^^
 NameError: name 'defaultdict' is not defined
 aaa
+--- UNHANDLED EXCEPTION ---
+Traceback (most recent call last):
+  File "C:\Users\Reymart De Lara\Desktop\WinMacOS\src\worker.py", line 748, in run
+    self.signals.server_fetched.emit(result)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: wrapped C/C++ object of type LparWorkerSignals has been deleted

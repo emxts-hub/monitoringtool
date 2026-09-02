@@ -1,6 +1,8 @@
 import os
 import sys
 import json
+import uuid
+import time
 from datetime import datetime, timezone
 
 APP_NAME = "IBMi_Dashboard"
@@ -347,11 +349,67 @@ def load_email_alerts():
     return merged
 
 
-def save_all_configs(server_configs, expected_subsystems=None, expected_ports=None, email_alerts=None):
-    """Saves server configuration and system/email settings into the persistent config.json.
+def safe_json_save(file_path: str, data) -> bool:
+    """Safely saves data to a JSON file using atomic file replacement to prevent OneDrive sync locks."""
+    temp_path = f"{file_path}.{uuid.uuid4().hex}.tmp"
+    try:
+        with open(temp_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4)
+            f.flush()
+            os.fsync(f.fileno())
+            
+        os.replace(temp_path, file_path)
+        return True
+    except Exception as err:
+        print(f"[safe_json_save] Error writing file {file_path}: {err}")
+        if os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except OSError:
+                pass
+        return False
 
-    If email_alerts is None the currently persisted or default email settings are preserved.
-    """
+
+def safe_json_append_and_save(file_path: str, new_entry: dict, max_retries: int = 5) -> bool:
+    """Re-reads the latest file on disk right before writing to ensure no concurrent records are lost."""
+    temp_path = f"{file_path}.{uuid.uuid4().hex}.tmp"
+
+    for attempt in range(max_retries):
+        try:
+            existing_data = []
+            if os.path.exists(file_path):
+                with open(file_path, "r", encoding="utf-8") as f:
+                    try:
+                        existing_data = json.load(f) or []
+                        if not isinstance(existing_data, list):
+                            existing_data = [existing_data]
+                    except json.JSONDecodeError:
+                        existing_data = []
+
+            # Append new entry to the fresh disk state
+            existing_data.append(new_entry)
+
+            with open(temp_path, "w", encoding="utf-8") as f:
+                json.dump(existing_data, f, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+
+            os.replace(temp_path, file_path)
+            return True
+
+        except Exception as err:
+            time.sleep(0.05 * (attempt + 1))
+            if os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except OSError:
+                    pass
+
+    return False
+
+
+def save_all_configs(server_configs, expected_subsystems=None, expected_ports=None, email_alerts=None):
+    """Saves server configuration and system/email settings into the persistent config.json."""
     config_path = get_config_path()
     config_dir = os.path.dirname(config_path)
     if config_dir:
@@ -362,7 +420,6 @@ def save_all_configs(server_configs, expected_subsystems=None, expected_ports=No
     if expected_ports is None:
         expected_ports = load_expected_ports()
 
-    # Load existing data to preserve unrelated keys
     existing = {}
     if os.path.exists(config_path):
         try:
@@ -375,7 +432,6 @@ def save_all_configs(server_configs, expected_subsystems=None, expected_ports=No
     if isinstance(email_alerts, dict):
         merged_email.update(email_alerts)
 
-    # If a password was supplied, try to store it securely and keep it out of the JSON.
     try:
         pwd = merged_email.pop("password", None)
         username = merged_email.get("username", "")
@@ -391,23 +447,16 @@ def save_all_configs(server_configs, expected_subsystems=None, expected_ports=No
         "SERVER_CONFIGS": server_configs,
         "EXPECTED_SUBSYSTEMS": expected_subsystems,
         "EXPECTED_PORTS": expected_ports,
-        # include other existing keys except those we overwrite
     }
 
-    # Preserve any other top-level keys from previous config
     for k, v in existing.items():
         if k not in data:
             data[k] = v
 
-    # Persist the email settings under EMAIL_ALERTS (password intentionally omitted)
     data["EMAIL_ALERTS"] = merged_email
 
-    try:
-        with open(config_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4)
-        return True
-    except Exception:
-        return False
+    return safe_json_save(config_path, data)
+
 
 SERVER_CONFIGS = load_server_configs()
 EXPECTED_SUBSYSTEMS = load_expected_subsystems()

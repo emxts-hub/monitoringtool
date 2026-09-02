@@ -13,7 +13,16 @@ from datetime import datetime, timedelta
 from email.message import EmailMessage
 import pyodbc
 from PyQt6.QtCore import QRunnable, QObject, pyqtSignal
-from config import SERVER_CONFIGS, MONITORED_PORTS, EXPECTED_PORTS, get_logs_dir, load_email_alerts, get_resource_path, EXPECTED_SUBSYSTEMS
+from config import (
+    SERVER_CONFIGS, 
+    MONITORED_PORTS, 
+    EXPECTED_PORTS, 
+    get_logs_dir, 
+    load_email_alerts, 
+    get_resource_path, 
+    EXPECTED_SUBSYSTEMS,
+    safe_json_append_and_save
+)
 
 _LOG_WRITE_LOCK = threading.Lock()
 _ALERT_STATE_LOCK = threading.Lock()
@@ -23,9 +32,7 @@ _LAST_ASP_EMAIL_STATE = {}
 
 
 def _new_connection(host, db, username, password):
-    
     return pyodbc.connect(
-        # 1. Use the modern 64-bit driver for better performance
         f"DRIVER={{IBM i Access ODBC Driver}};"
         f"SYSTEM={host};"
         f"UID={username};"
@@ -85,11 +92,9 @@ def _repair_wav_file_if_needed(wav_path):
 
 def play_asp_alert_sound():
     """Locates alert.wav, ngani.wav, and alert.wav and plays them sequentially (1 -> 2 -> 3) in the background."""
-    # Target 3 distinct sound names in exact order
     target_names = ["alert.wav", "ngani.wav", "alert.wav"]
     wav_paths = []
 
-    # 1. Resolve each target file path independently in order
     for name in target_names:
         candidate_paths = [
             get_resource_path(f"src/{name}"),
@@ -106,7 +111,6 @@ def play_asp_alert_sound():
                 found_path = path
                 break
 
-        # Fallback recursive search if specific paths fail
         if not found_path:
             base_dir = getattr(
                 sys,
@@ -121,7 +125,6 @@ def play_asp_alert_sound():
         if found_path and os.path.exists(found_path):
             wav_paths.append(found_path)
 
-    # Return early if fewer than 3 valid paths were found
     if len(wav_paths) < 3:
         print(
             f"Alert sound error: Expected 3 sound files, found {len(wav_paths)}."
@@ -129,26 +132,21 @@ def play_asp_alert_sound():
         return False
 
     try:
-        # Attempt header repairs on all resolved files
         for path in wav_paths:
             try:
                 _repair_wav_file_if_needed(path)
             except Exception:
                 pass
 
-        # Helper function to sequentially play paths in order
         def _play_sequential():
             for p in wav_paths:
                 if sys.platform == "win32":
                     import winsound
-
-                    # SND_FILENAME plays audio synchronously inside worker thread
                     winsound.PlaySound(
                         str(p), winsound.SND_FILENAME | winsound.SND_NODEFAULT
                     )
 
                 elif sys.platform == "darwin":
-                    # wait() ensures alert1 finishes before alert2 begins
                     p_proc = subprocess.Popen(
                         ["afplay", str(p)],
                         stdout=subprocess.DEVNULL,
@@ -157,7 +155,6 @@ def play_asp_alert_sound():
                     p_proc.wait()
 
                 else:
-                    # Linux playback
                     try:
                         p_proc = subprocess.Popen(
                             ["ffplay", "-nodisp", "-autoexit", str(p)],
@@ -173,7 +170,6 @@ def play_asp_alert_sound():
                         )
                         p_proc.wait()
 
-        # Launch the entire sequence on a single background daemon thread
         threading.Thread(target=_play_sequential, daemon=True).start()
         return True
 
@@ -306,12 +302,10 @@ def cleanup_old_logs(days_to_keep=30):
 
 def _has_server_issues(sys_info, server_configs=None):
     """Check if server has issues worth logging (status not online, DOWN subsystems/services/ports, or errors)."""
-    # Log if server is not online
     status = str(sys_info.get("status", "OFFLINE")).upper()
     if status not in ("ONLINE",):
         return True
     
-    # Log if subsystems are down - use actual subsystem statuses whenever available
     subsystems = sys_info.get("subsystems", [])
     if isinstance(subsystems, list):
         for sub in subsystems:
@@ -337,27 +331,20 @@ def _has_server_issues(sys_info, server_configs=None):
         if any(name not in active_names for name in expected_names):
             return True
     
-    # Log if any services/ports are down
     ports = sys_info.get("ports", [])
     if isinstance(ports, list):
         for port in ports:
             if isinstance(port, dict) and port.get("is_up") is False:
                 return True
     
-    # Log if there's an error
     if sys_info.get("error"):
         return True
     
-    # Don't log if everything is healthy
     return False
 
 
 def save_single_lpar_log(sys_info, server_configs=None):
-    """Appends a single LPAR result to the local offline log.
-
-    We log problem states immediately, but healthy servers still need one summary record
-    per hour so ASP/CPU usage can populate the daily report without spamming every sync.
-    """
+    """Appends a single LPAR result to the local offline log using safe re-read and atomic replacement."""
     logs_dir = get_logs_dir()
     now = datetime.now()
     date_str = now.strftime("%Y-%m-%d")
@@ -411,7 +398,6 @@ def save_single_lpar_log(sys_info, server_configs=None):
     cfg = configs.get(config_key, configs.get(str(sys_info.get("server") or sys_info.get("host_name") or config_key), {}))
     ip_addr = cfg.get("host", "N/A") if isinstance(cfg, dict) else str(cfg)
 
-    # Only include actual DOWN subsystems in log - do not infer all expected items as down
     subsystems_list = sys_info.get("subsystems", [])
     down_subsystems = []
     active_names = set()
@@ -441,7 +427,6 @@ def save_single_lpar_log(sys_info, server_configs=None):
                     "status": "DOWN"
                 })
     
-    # Set summary and details based on whether subsystems are down
     if down_subsystems:
         subsystems_summary = f"{len(down_subsystems)} Down"
         subsystems_detail = down_subsystems
@@ -470,33 +455,10 @@ def save_single_lpar_log(sys_info, server_configs=None):
         "records": [record]
     }
 
-    # 1. Local Disk Write
+    # Thread-safe & OneDrive-safe Atomic Append
     with _LOG_WRITE_LOCK:
-        existing_data = []
-        if os.path.exists(filepath):
-            try:
-                with open(filepath, "r", encoding="utf-8") as f:
-                    existing_data = json.load(f)
-                    if not isinstance(existing_data, list):
-                        existing_data = [existing_data]
-            except Exception:
-                existing_data = []
-
-        # Keep a full history of every sync. Do not collapse multiple reads for the same
-        # server into a single hourly record, otherwise the log is effectively throttled.
-        existing_data.append(entry)
-
-        temp_path = None
-        try:
-            temp_path = f"{filepath}.{uuid.uuid4().hex}.tmp"
-            with open(temp_path, "w", encoding="utf-8") as f:
-                json.dump(existing_data, f, indent=2)
-            os.replace(temp_path, filepath)
-        except Exception:
-            if temp_path and os.path.exists(temp_path):
-                os.remove(temp_path)
+        safe_json_append_and_save(filepath, entry)
         cleanup_old_logs(days_to_keep=30)
-
 
 
 class LparWorkerSignals(QObject):
@@ -508,14 +470,6 @@ class SingleLparRunnable(QRunnable):
     """Concurrent worker task for fetching metrics from a single LPAR connection."""
     def __init__(self, server, cfg, username, password, cancel_event=None):
         super().__init__()
-        # Prevent QThreadPool from auto-deleting the C++ side of this runnable
-        # (and its LparWorkerSignals child) the instant run() returns. That
-        # auto-delete happens on the worker thread and can race ahead of the
-        # queued cross-thread signal delivery to the GUI thread, causing:
-        # "RuntimeError: wrapped C/C++ object of type LparWorkerSignals has
-        # been deleted". Lifetime is instead managed by main_window's
-        # active_runnables set (added on start, discarded once the
-        # server_fetched signal has been handled).
         self.setAutoDelete(False)
         self.server = server
         self.cfg = cfg
@@ -586,7 +540,6 @@ class SingleLparRunnable(QRunnable):
             cpu_util = 0.0
             metric_errors = []
 
-                        # Keep your original fast SELECT structure, but optimize the inner function calls.
             try:
                 cursor.execute(
                     """
@@ -608,8 +561,6 @@ class SingleLparRunnable(QRunnable):
                         cpu_util = float(combined_row[2])
             except Exception as e:
                 metric_errors.append(f"jobs/ASP/CPU: {e}")
-
-
 
             if self.check_cancelled():
                 return
