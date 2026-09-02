@@ -5,6 +5,7 @@ from datetime import datetime
 import json
 import os
 import re
+from collections import defaultdict
 
 from config import get_all_logs_dirs
 from PyQt6.QtCore import Qt, QPointF, QThread, pyqtSignal
@@ -281,6 +282,7 @@ class MonthlyReportWidget(QWidget):
         self._sync_in_progress = False
         self._mode_buttons = []
         self._worker = None
+        self._initial_loaded = False
 
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(16, 16, 16, 16)
@@ -325,7 +327,13 @@ class MonthlyReportWidget(QWidget):
 
         self.set_theme(self.is_dark_theme)
         self.load_month_options()
-        self.refresh_report()
+
+    def showEvent(self, event):
+        """Automatically fetch and display month data when tab becomes visible."""
+        super().showEvent(event)
+        if not self._initial_loaded:
+            self._initial_loaded = True
+            self.refresh_report(force=True)
 
     def _extract_hourly_data(self, month_key, metric="cpu"):
         """Builds a structure mapping server -> day_num -> hour_num -> avg metric value."""
@@ -385,7 +393,6 @@ class MonthlyReportWidget(QWidget):
                     ws.title = "Monthly Report"
                     ws.views.sheetView[0].showGridLines = True
 
-                    # Summary Sheet Styles
                     title_font = Font(name="Segoe UI", size=16, bold=True, color="1F2937")
                     sub_font = Font(name="Segoe UI", size=9, italic=True, color="6B7280")
                     section_font = Font(name="Segoe UI", size=12, bold=True, color="1F6FEB")
@@ -403,7 +410,6 @@ class MonthlyReportWidget(QWidget):
                         bottom=Side(style="thin", color="D0D7DE")
                     )
 
-                    # Top Summary Header
                     ws["A1"] = f"IBM i Monthly ASP/CPU Report ({month_key})"
                     ws["A1"].font = title_font
                     ws["A2"] = "Source: Local persisted data"
@@ -468,7 +474,6 @@ class MonthlyReportWidget(QWidget):
                         col_letter = get_column_letter(col[0].column)
                         ws.column_dimensions[col_letter].width = max(max_len + 3, 10)
 
-                    # --- LPAR Individual Sheets Presentation Builder ---
                     year, month_num = map(int, month_key.split("-"))
                     m_name = month_name[month_num]
                     days_in_month = monthrange(year, month_num)[1]
@@ -483,7 +488,6 @@ class MonthlyReportWidget(QWidget):
                         list(hourly_asp.keys())
                     )))
 
-                    # LPAR Sheet Styling & Color Thresholds
                     lpar_title_font = Font(name="Segoe UI", size=14, bold=True, color="1F497D")
                     lpar_section_font = Font(name="Segoe UI", size=12, bold=True, color="1F497D")
                     lpar_header_font = Font(name="Segoe UI", size=10, bold=True, color="FFFFFF")
@@ -492,11 +496,10 @@ class MonthlyReportWidget(QWidget):
 
                     lpar_header_fill = PatternFill(start_color="1F497D", end_color="1F497D", fill_type="solid")
                     
-                    # 2-Tier Color Rule Fills
-                    fill_green = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")   # 0% - 89.99%
+                    fill_green = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
                     font_green = Font(name="Segoe UI", size=10, color="276A3C")
 
-                    fill_red = PatternFill(start_color="FCE4D6", end_color="FCE4D6", fill_type="solid")     # >= 90%
+                    fill_red = PatternFill(start_color="FCE4D6", end_color="FCE4D6", fill_type="solid")
                     font_red = Font(name="Segoe UI", size=10, bold=True, color="C00000")
 
                     lpar_border = Border(
@@ -511,7 +514,6 @@ class MonthlyReportWidget(QWidget):
                         lpar_ws = wb.create_sheet(title=sheet_name)
                         lpar_ws.views.sheetView[0].showGridLines = True
 
-                        # Document Header
                         lpar_ws["A1"] = f"LPAR Performance Matrix — {server_name}"
                         lpar_ws["A1"].font = lpar_title_font
 
@@ -525,7 +527,6 @@ class MonthlyReportWidget(QWidget):
                             lpar_ws.cell(row=r, column=1, value=section_title).font = lpar_section_font
                             r += 1
 
-                            # Column Headers
                             day_hdr = lpar_ws.cell(row=r, column=1, value="Day")
                             day_hdr.font = lpar_header_font
                             day_hdr.fill = lpar_header_fill
@@ -542,7 +543,6 @@ class MonthlyReportWidget(QWidget):
                             lpar_ws.row_dimensions[r].height = 24
                             r += 1
 
-                            # Matrix Rows
                             srv_data = hourly_dict.get(server_name, {})
                             for d in range(1, days_in_month + 1):
                                 lpar_ws.row_dimensions[r].height = 20
@@ -562,7 +562,6 @@ class MonthlyReportWidget(QWidget):
                                         cell.value = val_float / 100.0
                                         cell.number_format = "0.00%"
 
-                                        # Condition: >= 90% Red | 0–89% Green
                                         if val_float >= 90.0:
                                             cell.fill = fill_red
                                             cell.font = font_red
@@ -570,18 +569,15 @@ class MonthlyReportWidget(QWidget):
                                             cell.fill = fill_green
                                             cell.font = font_green
                                     else:
-                                        # Empty/Missing Data Cells
                                         cell.value = ""
                                         cell.font = data_font
                                 r += 1
 
                             return r + 2
 
-                        # Build CPU & ASP tables sequentially
                         current_r = render_metric_block("CPU Usage (%)", hourly_cpu, current_r)
                         current_r = render_metric_block("ASP Usage (%)", hourly_asp, current_r)
 
-                        # Set Column Dimensions
                         lpar_ws.column_dimensions["A"].width = 10
                         for h in range(24):
                             col_letter = get_column_letter(h + 2)
@@ -929,8 +925,8 @@ class MonthlyReportWidget(QWidget):
             self.month_combo.setCurrentIndex(0)
         self.month_combo.blockSignals(False)
 
-    def refresh_report(self):
-        if not self.isVisible():
+    def refresh_report(self, force=False):
+        if not force and not self.isVisible():
             return
 
         month_key = self.month_combo.currentText() or datetime.now().strftime("%Y-%m")

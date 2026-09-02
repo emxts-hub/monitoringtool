@@ -97,6 +97,7 @@ def main():
             window._version_worker = worker
 
         # Defer execution by 200ms so window opens instantly
+        
         QTimer.singleShot(200, run_version_check)
 
         sys.exit(app.exec())
