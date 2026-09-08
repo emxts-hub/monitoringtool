@@ -429,32 +429,30 @@ def _save_single_lpar_log(sys_info, server_configs=None):
     server_name = resolved_name if str(resolved_name).strip() and not re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", str(resolved_name).strip()) else config_key
     server_name = str(server_name).strip() or config_key
 
-    is_issue_state = _has_server_issues(sys_info, server_configs)
-    if not is_issue_state:
-        try:
-            existing_data = []
-            if os.path.exists(filepath):
-                with open(filepath, "r", encoding="utf-8") as f:
-                    existing_data = json.load(f) or []
-                    if not isinstance(existing_data, list):
-                        existing_data = [existing_data]
-            current_hour_prefix = now.strftime("%Y-%m-%d %H")
-            for entry in existing_data:
-                if not isinstance(entry, dict):
+    try:
+        existing_data = []
+        if os.path.exists(filepath):
+            with open(filepath, "r", encoding="utf-8") as f:
+                existing_data = json.load(f) or []
+                if not isinstance(existing_data, list):
+                    existing_data = [existing_data]
+        current_hour_prefix = now.strftime("%Y-%m-%d %H")
+        for entry in existing_data:
+            if not isinstance(entry, dict):
+                continue
+            for rec in entry.get("records", []):
+                if not isinstance(rec, dict):
                     continue
-                for rec in entry.get("records", []):
-                    if not isinstance(rec, dict):
-                        continue
-                    rec_server = str(rec.get("server") or rec.get("lpar") or rec.get("config_key") or "").strip()
-                    rec_ts = str(rec.get("timestamp") or "").strip()
-                    if rec_server == server_name and rec_ts.startswith(current_hour_prefix):
-                        return "already_recorded"
-        except json.JSONDecodeError:
-            return "failed"
-        except OSError:
-            return "file_busy"
-        except Exception:
-            return "failed"
+                rec_server = str(rec.get("server") or rec.get("lpar") or rec.get("config_key") or "").strip()
+                rec_ts = str(rec.get("timestamp") or "").strip()
+                if rec_server == server_name and rec_ts.startswith(current_hour_prefix):
+                    return "already_recorded"
+    except json.JSONDecodeError:
+        return "failed"
+    except OSError:
+        return "file_busy"
+    except Exception:
+        return "failed"
 
     down_services = []
     ports = sys_info.get("ports")

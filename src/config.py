@@ -361,7 +361,7 @@ def safe_json_save(file_path: str, data) -> bool:
         return False
 
 
-def safe_json_append_and_save(file_path: str, new_entry: dict, max_retries: int = 5) -> bool:
+def safe_json_append_and_save(file_path: str, new_entry: dict, max_retries: int = 20) -> bool:
     """Re-reads the latest file on disk right before writing to ensure no concurrent records are lost."""
     temp_path = f"{file_path}.{uuid.uuid4().hex}.tmp"
 
@@ -389,7 +389,8 @@ def safe_json_append_and_save(file_path: str, new_entry: dict, max_retries: int 
             return True
 
         except Exception as err:
-            time.sleep(0.05 * (attempt + 1))
+            # OneDrive may briefly hold the daily file during synchronization.
+            time.sleep(min(1.0, 0.15 * (attempt + 1)))
             if os.path.exists(temp_path):
                 try:
                     os.remove(temp_path)

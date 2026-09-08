@@ -521,11 +521,23 @@ class MonthlyReportWidget(QWidget):
                     cpu_table = append_metric_table(cpu_report, "CPU Usage", "CPU")
                     asp_table = append_metric_table(asp_report, "ASP Usage", "ASP")
 
-                    def add_metric_chart(table_info, title, anchor):
-                        if table_info["day_count"] < 1 or table_info["last_data_row"] < table_info["first_data_row"]:
+                    def add_metric_chart(table_info, title, data_row, anchor):
+                        if table_info["day_count"] < 1:
                             return
+                        categories = Reference(
+                            ws,
+                            min_col=2,
+                            max_col=table_info["day_count"] + 1,
+                            min_row=table_info["header_row"],
+                        )
+                        series_colors = [
+                            "2563EB", "DC2626", "EAB308", "16A34A", "EA580C",
+                            "0891B2", "7C3AED", "DB2777", "4F46E5", "65A30D",
+                        ]
+
+                        server_name = ws.cell(row=data_row, column=1).value or "Unknown"
                         chart = LineChart()
-                        chart.title = title
+                        chart.title = f"{title} - {server_name}"
                         chart.style = 2
                         chart.y_axis.title = "Usage (%)"
                         chart.x_axis.title = "Days"
@@ -544,39 +556,47 @@ class MonthlyReportWidget(QWidget):
                         chart.x_axis.tickLblPos = "low"
                         chart.x_axis.tickLblSkip = 1
                         chart.height = 8
-                        chart.width = 22
+                        chart.width = 20
 
                         data = Reference(
                             ws,
                             min_col=1,
                             max_col=table_info["day_count"] + 1,
-                            min_row=table_info["first_data_row"],
-                            max_row=table_info["last_data_row"],
-                        )
-                        categories = Reference(
-                            ws,
-                            min_col=2,
-                            max_col=table_info["day_count"] + 1,
-                            min_row=table_info["header_row"],
+                            min_row=data_row,
+                            max_row=data_row,
                         )
                         chart.add_data(data, titles_from_data=True, from_rows=True)
                         chart.set_categories(categories)
-                        chart.legend.position = "r"
-                        series_colors = [
-                            "2563EB", "DC2626", "EAB308", "16A34A", "EA580C",
-                            "0891B2", "7C3AED", "DB2777", "4F46E5", "65A30D",
-                        ]
-                        for index, series in enumerate(chart.series):
-                            color = series_colors[index % len(series_colors)]
+                        chart.legend = None
+                        for series in chart.series:
                             series.graphicalProperties = GraphicalProperties()
-                            series.graphicalProperties.line.solidFill = color
+                            series.graphicalProperties.line.solidFill = series_colors[0]
                             series.graphicalProperties.line.width = 22000
                             series.marker.symbol = "circle"
                             series.marker.size = 5
                         charts_ws.add_chart(chart, anchor)
 
-                    add_metric_chart(cpu_table, "CPU Usage Per System", "A4")
-                    add_metric_chart(asp_table, "ASP Usage Per System", "A25")
+                    def table_rows_by_server(table_info):
+                        if table_info["day_count"] < 1:
+                            return {}
+                        return {
+                            ws.cell(row=data_row, column=1).value: data_row
+                            for data_row in range(
+                                table_info["first_data_row"],
+                                table_info["last_data_row"] + 1,
+                            )
+                        }
+
+                    asp_rows = table_rows_by_server(asp_table)
+                    cpu_rows = table_rows_by_server(cpu_table)
+                    servers = list(dict.fromkeys([*asp_rows.keys(), *cpu_rows.keys()]))
+                    chart_row = 4
+                    for server in servers:
+                        if server in asp_rows:
+                            add_metric_chart(asp_table, "ASP Usage", asp_rows[server], f"A{chart_row}")
+                        if server in cpu_rows:
+                            add_metric_chart(cpu_table, "CPU Usage", cpu_rows[server], f"O{chart_row}")
+                        chart_row += 18
                     charts_ws.column_dimensions["A"].width = 3
 
                     for col in ws.columns:
