@@ -29,6 +29,17 @@ jobs:
         run: |
           pyinstaller --noconsole --onedir --noupx --clean --name WinMacOS --paths=src --add-data "src/alert.wav;src" --add-data "src/ngani.wav;src" --icon=src/logo.ico --collect-all PyQt6 src/main.py
 
+      - name: Sign PyInstaller Output Binaries
+        shell: powershell
+        run: |
+          # Create a self-signed code-signing certificate
+          $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=WinMacOS Code Signing" -CertStoreLocation "Cert:\CurrentUser\My"
+          
+          # Sign all executable and DLL files (including PyQt6 binaries) to pass AppLocker/WDAC policy checks
+          Get-ChildItem -Path "dist\WinMacOS" -Recurse -Include *.exe, *.dll, *.pyd | ForEach-Object {
+              Set-AuthenticodeSignature -FilePath $_.FullName -Certificate $cert
+          }
+
       - name: Install Inno Setup
         run: |
           choco install innosetup --no-progress -y
