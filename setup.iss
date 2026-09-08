@@ -1,5 +1,5 @@
 #define AppName "WinMacOS"
-#define AppVersion "3.1.1"
+#define AppVersion "3.1.5"
 #define AppPublisher "emxts-hub"
 #define AppExeName "WinMacOS.exe"
 
@@ -20,7 +20,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayIcon={app}\{#AppExeName}
 
 [Files]
-Source: "dist\{#AppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\WinMacOS\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Offline-only release build: no Firebase service account JSON is bundled.
 ; The workflow removes any legacy credential file before packaging.
 
