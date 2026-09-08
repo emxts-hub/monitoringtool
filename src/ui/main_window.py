@@ -5,11 +5,11 @@ import threading
 import time
 from typing import cast
 from collections import deque
-from config import APP_VERSION, APP_NAME
+from config import APP_VERSION, APP_NAME, load_email_alerts
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from PyQt6.QtCore import Qt, QTimer, QThreadPool, QCoreApplication, QPointF, QRectF
+from PyQt6.QtCore import Qt, QTimer, QThreadPool, QCoreApplication, QPointF, QRectF, QPropertyAnimation, QAbstractAnimation, pyqtProperty
 from PyQt6.QtGui import QColor, QFont, QCursor, QIcon, QPainter, QPen, QPolygonF, QBrush
 from PyQt6.QtWidgets import (
     QMainWindow, QTabWidget, QWidget, QVBoxLayout,
@@ -19,7 +19,7 @@ from PyQt6.QtWidgets import (
     QApplication, QSizePolicy, QComboBox
 )
 
-from worker import SingleLparRunnable
+from worker import SingleLparRunnable, has_vpn_ip, reset_asp_alert_sound, stop_asp_alert_sound
 from ui.log_viewer import LogViewerWidget
 from ui.monthly_report import MonthlyReportWidget
 from ui.widgets import RefreshStatusWidget, StatusBadgesWidget, SubsystemGridWidget, ThemeLoadingDialog
@@ -360,6 +360,13 @@ class LparCardWidget(QFrame):
         self._last_update_signature = None
         self._last_card_style_key = None
         self._last_status_badge_key = None
+        self._alert_pulse = 0.0
+        self._alert_animation = QPropertyAnimation(self, b"alertPulse", self)
+        self._alert_animation.setDuration(900)
+        self._alert_animation.setStartValue(0.0)
+        self._alert_animation.setKeyValueAt(0.5, 1.0)
+        self._alert_animation.setEndValue(0.0)
+        self._alert_animation.setLoopCount(-1)
         
         self.setMinimumWidth(0)
         self.setFixedHeight(350)
@@ -474,6 +481,23 @@ class LparCardWidget(QFrame):
         self.set_card_style(is_critical=self.current_is_critical)
         self.set_status(self.current_status)
 
+    def _get_alert_pulse(self):
+        return self._alert_pulse
+
+    def _set_alert_pulse(self, value):
+        self._alert_pulse = float(value)
+        self.set_card_style(is_critical=self.current_is_critical, force=True)
+
+    alertPulse = pyqtProperty(float, fget=_get_alert_pulse, fset=_set_alert_pulse)
+
+    def _update_alert_animation(self):
+        should_pulse = self.current_is_critical and self.current_status in ("ONLINE", "DEGRADED")
+        if should_pulse and self._alert_animation.state() != QAbstractAnimation.State.Running:
+            self._alert_animation.start()
+        elif not should_pulse and self._alert_animation.state() != QAbstractAnimation.State.Stopped:
+            self._alert_animation.stop()
+            self._set_alert_pulse(0.0)
+
     def open_subsystem_modal(self, server_name):
         dialog = SubsystemDetailDialog(
             server_name=self.server_name, 
@@ -483,14 +507,14 @@ class LparCardWidget(QFrame):
         )
         dialog.show_centered()
 
-    def set_card_style(self, is_critical=False):
+    def set_card_style(self, is_critical=False, force=False):
         key = (self.is_dark_theme, bool(is_critical))
-        if self._last_card_style_key == key:
+        if self._last_card_style_key == key and not force:
             return
         self._last_card_style_key = key
 
         if not self.is_dark_theme:
-            border_color = "#f85149" if is_critical else "#d0d7de"
+            border_color = self._alert_border_color("#d0d7de", "#cf222e") if is_critical else "#d0d7de"
             self.setStyleSheet(f"""
                 LparCardWidget {{
                     background-color: #ffffff;
@@ -507,16 +531,17 @@ class LparCardWidget(QFrame):
             return
 
         if is_critical:
+            border_color = self._alert_border_color("#30363d", "#f85149")
             self.setStyleSheet("""
                 LparCardWidget {
                     background-color: #161b22;
-                    border: 2px solid #f85149;
+                    border: 2px solid %s;
                     border-radius: 10px;
                 }
                 QLabel {
                     background-color: transparent;
                 }
-            """)
+            """ % border_color)
         else:
             self.setStyleSheet("""
                 LparCardWidget {
@@ -528,6 +553,15 @@ class LparCardWidget(QFrame):
                     background-color: transparent;
                 }
             """)
+
+    def _alert_border_color(self, base_color, alert_color):
+        base = QColor(base_color)
+        alert = QColor(alert_color)
+        pulse = self._alert_pulse
+        red = round(base.red() + (alert.red() - base.red()) * pulse)
+        green = round(base.green() + (alert.green() - base.green()) * pulse)
+        blue = round(base.blue() + (alert.blue() - base.blue()) * pulse)
+        return QColor(red, green, blue).name()
 
     def _sync_health_summary(self):
         last_success_text = f"Last success: {self.last_success_ts}" if self.last_success_ts else "Last success: never"
@@ -541,10 +575,23 @@ class LparCardWidget(QFrame):
 
     def set_status(self, status):
         self.current_status = status
-        self.set_card_style(is_critical=self.current_is_critical)
+        self.set_card_style(
+            is_critical=self.current_is_critical and status not in ("CONNECTING", "SYNCING")
+        )
+        self._update_alert_animation()
         self._sync_health_summary()
 
-        if status == "SYNCING":
+        if status == "CONNECTING":
+            key = (status, self.is_dark_theme)
+            if self._last_status_badge_key == key:
+                return
+            self._last_status_badge_key = key
+            connecting_color = "#58a6ff" if self.is_dark_theme else "#0969da"
+            self.status_badge.setText("CONNECTING ●")
+            self.status_badge.setStyleSheet(
+                f"color: {connecting_color}; font-weight: bold; background-color: transparent;"
+            )
+        elif status == "SYNCING":
             key = (status, self.is_dark_theme)
             if self._last_status_badge_key == key:
                 return
@@ -670,7 +717,8 @@ class LparCardWidget(QFrame):
 
         cpu_sharing = str(data.get("cpu_sharing_attribute", "")).upper()
         is_uncapped = "UNCAPPED" in cpu_sharing or cpu > 100.0
-        is_critical = asp >= 90.0
+        threshold_percent = float(load_email_alerts().get("threshold_percent", 40.0) or 40.0)
+        is_critical = asp >= threshold_percent
 
         signature = (
             status,
@@ -681,6 +729,7 @@ class LparCardWidget(QFrame):
             repr(ports),
             is_uncapped,
             is_critical,
+            threshold_percent,
             self.last_error_reason,
             self.retry_count,
             self.sync_duration_ms,
@@ -704,6 +753,7 @@ class LparCardWidget(QFrame):
 
         self.current_is_critical = is_critical
         self.set_card_style(is_critical=is_critical)
+        self._update_alert_animation()
 
         label_key = (status, is_critical, self.is_dark_theme)
         if self._last_status_badge_key != label_key:
@@ -912,6 +962,7 @@ class GlobalAlertsWidget(QGroupBox):
         active_lpars = 0
         listed_lpars = len(data_list)
         configured_lpars = total_lpars if total_lpars is not None else listed_lpars
+        threshold_percent = float(load_email_alerts().get("threshold_percent", 40.0) or 40.0)
 
         for sys_info in data_list:
             status = str(sys_info.get("status", "")).upper()
@@ -925,7 +976,7 @@ class GlobalAlertsWidget(QGroupBox):
             down_ports = [p for p in ports if isinstance(p, dict) and p.get("is_up") is False]
             total_down_services += len(down_ports)
 
-            if float(sys_info.get("asp", 0.0) or 0.0) >= 90.0 and status in ("ONLINE", "DEGRADED"):
+            if float(sys_info.get("asp", 0.0) or 0.0) >= threshold_percent and status in ("ONLINE", "DEGRADED"):
                 overloaded_servers.append(str(sys_info.get("server") or sys_info.get("host_name") or ""))
 
         signature = (
@@ -933,6 +984,7 @@ class GlobalAlertsWidget(QGroupBox):
             tuple(sorted(overloaded_servers)),
             active_lpars,
             configured_lpars,
+            threshold_percent,
             tuple(sorted((sys_info.get("server", ""), sys_info.get("status", ""), round(float(sys_info.get("asp", 0.0)), 1), round(float(sys_info.get("cpu", 0.0)), 1)) for sys_info in data_list))
         )
         if self._last_summary_signature == signature:
@@ -986,6 +1038,10 @@ class IBMiDashboard(QMainWindow):
         self.refresh_generation = 0
         self.active_runnables = set()
         self.last_log_history_refresh = 0.0
+        self._log_history_refresh_timer = QTimer(self)
+        self._log_history_refresh_timer.setSingleShot(True)
+        self._log_history_refresh_timer.setInterval(750)
+        self._log_history_refresh_timer.timeout.connect(self._refresh_log_history_after_results)
         self.auto_refresh_paused = False
         self.last_refresh_success_at = None
         self.last_refresh_started_at = None
@@ -1020,10 +1076,6 @@ class IBMiDashboard(QMainWindow):
         self.tabs.addTab(self.log_viewer_widget, "📜 Log Viewer History")
 
         self.monthly_report_widget = MonthlyReportWidget()
-        self.monthly_report_widget.set_log_data_store(
-            self.log_viewer_widget.log_data_store,
-            source_mode="local"
-        )
         self.log_viewer_widget.monthly_report_widget = self.monthly_report_widget
         setattr(self.monthly_report_widget, "parent_log_viewer", self.log_viewer_widget)
         self.monthly_report_widget.set_theme(self.is_dark_theme)
@@ -1031,8 +1083,28 @@ class IBMiDashboard(QMainWindow):
 
         self.apply_theme_state()
 
+        self._create_startup_loading_overlay()
+
         # Postpone background log loading to after the UI loop initializes
         QTimer.singleShot(300, self.post_init_tasks)
+
+    def _create_startup_loading_overlay(self):
+        self.startup_loading_overlay = QFrame(self)
+        self.startup_loading_overlay.setStyleSheet(
+            "QFrame { background-color: rgba(246, 248, 250, 245); }"
+            "QLabel { color: #1f2937; background-color: #ffffff; "
+            "border: 1px solid #d0d7de; border-radius: 10px; "
+            "padding: 28px 56px; font-size: 18px; font-weight: bold; }"
+        )
+        overlay_layout = QVBoxLayout(self.startup_loading_overlay)
+        overlay_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        overlay_layout.setContentsMargins(0, 0, 0, 0)
+        loading_label = QLabel("Loading dashboard...")
+        loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        overlay_layout.addWidget(loading_label)
+        self.startup_loading_overlay.setGeometry(self.rect())
+        self.startup_loading_overlay.raise_()
+        self.startup_loading_overlay.show()
 
     def _show_sync_loading(self, message="Syncing data..."):
         self.status_label.setText(f"Status: {message}")
@@ -1047,12 +1119,33 @@ class IBMiDashboard(QMainWindow):
             self.status_label.setText("Status: Monitoring stopped. Credentials unlocked for editing.")
             self.status_label.setStyleSheet("color: #8b949e; font-size: 11px; background-color: transparent;")
 
+    def _schedule_log_history_refresh(self):
+        if self.log_viewer_widget is not None:
+            self._log_history_refresh_timer.start()
+
+    def _refresh_log_history_after_results(self):
+        live_server_names = {
+            str(data.get("server") or key): {}
+            for key, data in self.latest_results_cache.items()
+        }
+        if live_server_names:
+            self.log_viewer_widget.load_log_history(
+                live_server_names,
+                silent=True,
+            )
+
     def post_init_tasks(self):
         """Perform non-blocking operations after UI layout is painted."""
-        self._show_sync_loading("Loading data...")
-        if hasattr(self, 'log_viewer_widget'):
-            self.log_viewer_widget.load_log_history()
-        QTimer.singleShot(1500, self._hide_sync_loading)
+        QTimer.singleShot(1200, self._finish_startup_loading)
+
+    def _finish_startup_loading(self):
+        if hasattr(self, "startup_loading_overlay"):
+            self.startup_loading_overlay.hide()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, "startup_loading_overlay"):
+            self.startup_loading_overlay.setGeometry(self.rect())
 
     def apply_theme_state(self):
         title_color = "#ffffff" if self.is_dark_theme else "#1f2328"
@@ -1560,9 +1653,15 @@ class IBMiDashboard(QMainWindow):
             self.status_label.setStyleSheet("color: #f85149; font-size: 11px; background-color: transparent;")
             return
 
+        if not has_vpn_ip():
+            self.status_label.setText("Error: VPN connection not detected. Please check your VPN before starting monitoring.")
+            self.status_label.setStyleSheet("color: #f85149; font-size: 11px; background-color: transparent;")
+            return
+
         self.refresh_generation += 1
         self.is_monitoring = True
         self.auto_refresh_paused = False
+        reset_asp_alert_sound()
         self.user_input.setEnabled(False)
         self.pass_input.setEnabled(False)
         self.settings_btn.setEnabled(False)
@@ -1570,6 +1669,9 @@ class IBMiDashboard(QMainWindow):
         
         self.toggle_btn.setText("Stop Auto-Refresh")
         self.update_toggle_button_style()
+
+        for card in self.card_widgets.values():
+            card.set_status("CONNECTING")
 
         self.refresh_widget.set_active_state(True)
         self._show_sync_loading("Starting independent server refreshes...")
@@ -1582,6 +1684,7 @@ class IBMiDashboard(QMainWindow):
         self.refresh_generation += 1
         self._refresh_in_progress = False
         self._refresh_queued = False
+        stop_asp_alert_sound()
         for timer in self.server_refresh_timers.values():
             timer.stop()
         self.server_refresh_timers.clear()
@@ -1668,12 +1771,17 @@ class IBMiDashboard(QMainWindow):
             username,
             password,
             cancel_event=threading.Event(),
+            signal_parent=self,
         )
         self.active_runnables.add(runnable)
         generation = self.refresh_generation
         runnable.signals.server_fetched.connect(
             lambda data, gen=generation, task=runnable, srv=server_name:
                 self._on_single_server_fetched_independent(data, gen, task, srv)
+        )
+        runnable.signals.server_failed.connect(
+            lambda data, gen=generation, task=runnable, srv=server_name:
+                self._on_single_server_failed(data, gen, task, srv)
         )
         self.thread_pool.start(runnable)
 
@@ -1688,12 +1796,7 @@ class IBMiDashboard(QMainWindow):
         self.server_last_fetch_time[server_name] = time.monotonic()
         self._register_server_result(config_key, lpar_data)
 
-        live_server_names = {
-            str(data.get("server") or key): {}
-            for key, data in self.latest_results_cache.items()
-        }
-        if live_server_names:
-            self.log_viewer_widget.load_log_history(live_server_names)
+        self._schedule_log_history_refresh()
 
         if config_key in self.card_widgets:
             card = self.card_widgets[config_key]
@@ -1711,6 +1814,20 @@ class IBMiDashboard(QMainWindow):
         self._reschedule_server_timer(server_name, retry_delay)
         self._ensure_server_timers_alive()
         self._hide_sync_loading()
+
+    def _on_single_server_failed(self, failure, generation, runnable, server_name):
+        self.active_runnables.discard(runnable)
+        if not self.is_monitoring or generation != self.refresh_generation:
+            return
+
+        config_key = failure.get("server") or runnable.server
+        self._register_server_result(config_key, failure)
+        card = self.card_widgets.get(config_key)
+        if card is not None:
+            card.last_error_reason = str(failure.get("error") or "Fetch failed")
+            card.set_status("OFFLINE")
+        self._refresh_global_status_summary()
+        self._reschedule_server_timer(server_name, self._next_retry_delay_ms())
 
     def fetch_data(self, force=False):
         if not self.is_monitoring:
@@ -1759,13 +1876,32 @@ class IBMiDashboard(QMainWindow):
                 username,
                 password,
                 cancel_event=threading.Event(),
+                signal_parent=self,
             )
             self.active_runnables.add(runnable)
             runnable.signals.server_fetched.connect(
                 lambda data, generation=cycle_id, task=runnable:
                     self.on_single_lpar_fetched(data, generation, task)
             )
+            runnable.signals.server_failed.connect(
+                lambda data, generation=cycle_id, task=runnable:
+                    self.on_single_lpar_failed(data, generation, task)
+            )
             self.thread_pool.start(runnable)
+
+    def on_single_lpar_failed(self, failure, generation, runnable):
+        self.active_runnables.discard(runnable)
+        if not self.is_monitoring or generation != self.refresh_generation:
+            return
+        config_key = failure.get("server") or runnable.server
+        self._register_server_result(config_key, failure)
+        card = self.card_widgets.get(config_key)
+        if card is not None:
+            card.last_error_reason = str(failure.get("error") or "Fetch failed")
+            card.set_status("OFFLINE")
+        self.completed_threads_count += 1
+        if self.completed_threads_count >= self.pending_lpar_count:
+            self.on_all_lpars_finished()
 
     def on_single_lpar_fetched(self, lpar_data, generation, runnable):
         self.active_runnables.discard(runnable)
@@ -1778,12 +1914,7 @@ class IBMiDashboard(QMainWindow):
         self._register_server_result(config_key, lpar_data)
         self.completed_threads_count += 1
 
-        live_server_names = {
-            str(data.get("server") or key): {}
-            for key, data in self.latest_results_cache.items()
-        }
-        if live_server_names:
-            self.log_viewer_widget.load_log_history(live_server_names)
+        self._schedule_log_history_refresh()
 
         if config_key in self.card_widgets:
             card = self.card_widgets[config_key]

@@ -6,7 +6,6 @@ import struct
 import threading
 import time
 import uuid
-import platform
 import subprocess
 import smtplib
 from datetime import datetime, timedelta
@@ -29,20 +28,30 @@ _ALERT_STATE_LOCK = threading.Lock()
 _LAST_ASP_ALERT_STATE = {}
 _LAST_ASP_SOUND_STATE = {"armed": False, "sent_at": 0.0}
 _LAST_ASP_EMAIL_STATE = {}
+_ALERT_SOUND_STOP_EVENT = threading.Event()
+_ALERT_SOUND_PROCESSES = set()
+_ALERT_SOUND_PROCESS_LOCK = threading.Lock()
 
 
 def _new_connection(host, db, username, password):
+    # Performance tuning parameters for IBM i ODBC driver
+    extra_params = (
+        "NAM=1;"              # SQL System Naming (reduces library resolve time)
+        "LAZYCLOSE=1;"        # Keep cursors active for fast statement execution
+        "TRANSLATE=0;"        # Disable automatically converting CCSID values
+    )
     return pyodbc.connect(
         f"DRIVER={{IBM i Access ODBC Driver}};"
         f"SYSTEM={host};"
         f"UID={username};"
         f"PWD={password};"
-        f"SSL=0;"  # Keeping SSL off saves CPU cycles if security allows
+        f"SSL=0;"
         f"DATABASE={db};"
         f"CONN_TIMEOUT=3;"
-        f"QUERY_TIMEOUT=3;",
+        f"QUERY_TIMEOUT=3;"
+        f"{extra_params}",
         timeout=3,
-        autocommit=True,      # Eliminates transaction management overhead
+        autocommit=True,
     )
 
 
@@ -91,8 +100,9 @@ def _repair_wav_file_if_needed(wav_path):
 
 
 def play_asp_alert_sound():
-    """Locates alert.wav, ngani.wav, and alert.wav and plays them sequentially (1 -> 2 -> 3) in the background."""
-    target_names = ["alert.wav", "ngani.wav", "alert.wav"]
+    """Locates warning.wav, ngani.wav, and alert.wav and plays them sequentially (1 -> 2 -> 3) in the background."""
+    """target_names = ["warning.wav", "ngani.wav", "alert.wav"]"""
+    target_names = ["warning.wav"]
     wav_paths = []
 
     for name in target_names:
@@ -125,9 +135,10 @@ def play_asp_alert_sound():
         if found_path and os.path.exists(found_path):
             wav_paths.append(found_path)
 
-    if len(wav_paths) < 3:
+    """if len(wav_paths) < 3:"""
+    if len(wav_paths) < 1:
         print(
-            f"Alert sound error: Expected 3 sound files, found {len(wav_paths)}."
+            f"Alert sound error: Expected at least 1 sound file, found {len(wav_paths)}."
         )
         return False
 
@@ -140,10 +151,13 @@ def play_asp_alert_sound():
 
         def _play_sequential():
             for p in wav_paths:
+                if _ALERT_SOUND_STOP_EVENT.is_set():
+                    return
                 if sys.platform == "win32":
                     import winsound
                     winsound.PlaySound(
-                        str(p), winsound.SND_FILENAME | winsound.SND_NODEFAULT
+                        str(p),
+                        winsound.SND_FILENAME | winsound.SND_NODEFAULT | winsound.SND_ASYNC,
                     )
 
                 elif sys.platform == "darwin":
@@ -152,7 +166,13 @@ def play_asp_alert_sound():
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL,
                     )
-                    p_proc.wait()
+                    with _ALERT_SOUND_PROCESS_LOCK:
+                        _ALERT_SOUND_PROCESSES.add(p_proc)
+                    try:
+                        p_proc.wait()
+                    finally:
+                        with _ALERT_SOUND_PROCESS_LOCK:
+                            _ALERT_SOUND_PROCESSES.discard(p_proc)
 
                 else:
                     try:
@@ -161,14 +181,26 @@ def play_asp_alert_sound():
                             stdout=subprocess.DEVNULL,
                             stderr=subprocess.DEVNULL,
                         )
-                        p_proc.wait()
+                        with _ALERT_SOUND_PROCESS_LOCK:
+                            _ALERT_SOUND_PROCESSES.add(p_proc)
+                        try:
+                            p_proc.wait()
+                        finally:
+                            with _ALERT_SOUND_PROCESS_LOCK:
+                                _ALERT_SOUND_PROCESSES.discard(p_proc)
                     except Exception:
                         p_proc = subprocess.Popen(
                             ["aplay", str(p)],
                             stdout=subprocess.DEVNULL,
                             stderr=subprocess.DEVNULL,
                         )
-                        p_proc.wait()
+                        with _ALERT_SOUND_PROCESS_LOCK:
+                            _ALERT_SOUND_PROCESSES.add(p_proc)
+                        try:
+                            p_proc.wait()
+                        finally:
+                            with _ALERT_SOUND_PROCESS_LOCK:
+                                _ALERT_SOUND_PROCESSES.discard(p_proc)
 
         threading.Thread(target=_play_sequential, daemon=True).start()
         return True
@@ -176,6 +208,38 @@ def play_asp_alert_sound():
     except Exception as e:
         print(f"Failed to play alert sounds: {e}")
         return False
+
+
+def reset_asp_alert_sound():
+    """Allow alert playback for a new monitoring session."""
+    _ALERT_SOUND_STOP_EVENT.clear()
+
+
+def stop_asp_alert_sound():
+    """Stop any alert playback started by the monitoring worker."""
+    _ALERT_SOUND_STOP_EVENT.set()
+
+    def _stop_playback():
+        if sys.platform == "win32":
+            try:
+                import winsound
+                winsound.PlaySound(None, winsound.SND_PURGE)
+                winsound.PlaySound(None, 0)
+            except Exception:
+                pass
+
+        with _ALERT_SOUND_PROCESS_LOCK:
+            processes = list(_ALERT_SOUND_PROCESSES)
+            _ALERT_SOUND_PROCESSES.clear()
+
+        for process in processes:
+            try:
+                if process.poll() is None:
+                    process.terminate()
+            except Exception:
+                pass
+
+    threading.Thread(target=_stop_playback, daemon=True).start()
 
 
 def send_asp_alert(server_name, asp_value, threshold_percent):
@@ -257,24 +321,27 @@ def maybe_send_asp_alert(server_name, asp_value):
     return sound_played
 
 
-def ping_ip(host_ip, timeout_ms=1000):
-    """Pings a host IP address to check network reachability directly on background thread."""
-    if not host_ip or host_ip == "N/A":
-        return False
-    
-    is_windows = platform.system().lower() == "windows"
-    param = "-n" if is_windows else "-c"
-    timeout_param = "-w" if is_windows else "-W"
-    timeout_val = str(timeout_ms) if is_windows else str(max(1, int(timeout_ms / 1000)))
-    
-    command = ["ping", param, "1", timeout_param, timeout_val, host_ip]
+def has_vpn_ip(prefix="10.212."):
+    """Returns whether Windows has an IPv4 address assigned in the VPN range."""
+    command = [
+        "powershell",
+        "-NoProfile",
+        "-Command",
+        "(Get-NetIPAddress -AddressFamily IPv4).IPAddress",
+    ]
     try:
-        creation_flags = 0
-        if is_windows and hasattr(subprocess, "CREATE_NO_WINDOW"):
-            creation_flags = subprocess.CREATE_NO_WINDOW
-        res = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=creation_flags)
-        return res.returncode == 0
-    except Exception:
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=2,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        return result.returncode == 0 and any(
+            address.strip().startswith(prefix)
+            for address in result.stdout.splitlines()
+        )
+    except (OSError, subprocess.SubprocessError):
         return False
 
 
@@ -344,6 +411,11 @@ def _has_server_issues(sys_info, server_configs=None):
 
 
 def save_single_lpar_log(sys_info, server_configs=None):
+    with _LOG_WRITE_LOCK:
+        return _save_single_lpar_log(sys_info, server_configs)
+
+
+def _save_single_lpar_log(sys_info, server_configs=None):
     """Appends a single LPAR result to the local offline log using safe re-read and atomic replacement."""
     logs_dir = get_logs_dir()
     now = datetime.now()
@@ -376,9 +448,13 @@ def save_single_lpar_log(sys_info, server_configs=None):
                     rec_server = str(rec.get("server") or rec.get("lpar") or rec.get("config_key") or "").strip()
                     rec_ts = str(rec.get("timestamp") or "").strip()
                     if rec_server == server_name and rec_ts.startswith(current_hour_prefix):
-                        return
+                        return "already_recorded"
+        except json.JSONDecodeError:
+            return "failed"
+        except OSError:
+            return "file_busy"
         except Exception:
-            pass
+            return "failed"
 
     down_services = []
     ports = sys_info.get("ports")
@@ -455,20 +531,38 @@ def save_single_lpar_log(sys_info, server_configs=None):
         "records": [record]
     }
 
-    # Thread-safe & OneDrive-safe Atomic Append
-    with _LOG_WRITE_LOCK:
-        safe_json_append_and_save(filepath, entry)
-        cleanup_old_logs(days_to_keep=30)
+    # OneDrive-safe atomic append; the caller holds the process-wide log lock.
+    if not safe_json_append_and_save(filepath, entry):
+        return "file_busy"
+    cleanup_old_logs(days_to_keep=30)
+    return "saved"
+
+
+def _persist_and_emit(runnable, result):
+    persistence_status = save_single_lpar_log(result, SERVER_CONFIGS)
+    if persistence_status in ("saved", "already_recorded"):
+        runnable.signals.server_fetched.emit(result)
+    else:
+        runnable.signals.server_failed.emit({
+            "server": runnable.server,
+            "status": "OFFLINE",
+            "error": f"Log persistence {persistence_status}; result withheld.",
+        })
+        print(
+            f"[{runnable.server}] Result not emitted because log persistence "
+            f"returned {persistence_status}."
+        )
 
 
 class LparWorkerSignals(QObject):
     """Signals for communicating LPAR query execution results safely to GUI widgets."""
     server_fetched = pyqtSignal(dict)
+    server_failed = pyqtSignal(dict)
 
 
 class SingleLparRunnable(QRunnable):
     """Concurrent worker task for fetching metrics from a single LPAR connection."""
-    def __init__(self, server, cfg, username, password, cancel_event=None):
+    def __init__(self, server, cfg, username, password, cancel_event=None, signal_parent=None):
         super().__init__()
         self.setAutoDelete(False)
         self.server = server
@@ -476,7 +570,7 @@ class SingleLparRunnable(QRunnable):
         self.username = username
         self.password = password
         self.cancel_event = cancel_event or threading.Event()
-        self.signals = LparWorkerSignals()
+        self.signals = LparWorkerSignals(signal_parent)
 
     def cancel(self):
         self.cancel_event.set()
@@ -496,25 +590,6 @@ class SingleLparRunnable(QRunnable):
         db = self.cfg.get("db", "*LOCAL") if isinstance(self.cfg, dict) else "*LOCAL"
 
         if self.check_cancelled():
-            return
-
-        if not ping_ip(host):
-            result = {
-                "server": self.server,
-                "host_name": self.server,
-                "config_key": self.server,
-                "status": "OFFLINE",
-                "error": f"[{self.server}] Host {host} is unreachable / VPN disconnected.",
-                "cpu": 0.0,
-                "asp": 0.0,
-                "jobs": 0,
-                "subsystems": [],
-                "ports": [],
-                "sync_duration_ms": max(0, int((time.monotonic() - started_at) * 1000)),
-            }
-            if not self.is_cancelled():
-                save_single_lpar_log(result, SERVER_CONFIGS)
-                self.signals.server_fetched.emit(result)
             return
 
         try:
@@ -607,36 +682,48 @@ class SingleLparRunnable(QRunnable):
 
             port_status_list = []
             try:
-                cursor.execute(
-                    """
-                    SELECT LOCAL_PORT 
-                    FROM QSYS2.NETSTAT_INFO 
-                    WHERE TCP_STATE IN ('LISTEN')
-                    """
-                )
-                active_ports = {
-                    int(r[0]) for r in cursor.fetchall() if r[0] is not None and str(r[0]).isdigit()
-                }
-
                 target_ports = EXPECTED_PORTS.get(self.server, [])
                 if not target_ports and isinstance(MONITORED_PORTS, dict):
                     target_ports = [{"port": p, "name": s} for p, s in MONITORED_PORTS.items()]
 
+                requested_ports = []
                 for p_info in target_ports:
-                    if self.check_cancelled():
-                        return
                     p_num = p_info.get("port") if isinstance(p_info, dict) else p_info
-                    p_name = p_info.get("name", f"PORT_{p_num}") if isinstance(p_info, dict) else str(p_num)
                     try:
-                        port_number = int(p_num)
+                        requested_ports.append(int(p_num))
                     except (TypeError, ValueError):
                         continue
-                    port_status_list.append({
-                        "port": port_number,
-                        "name": p_name,
-                        "service": p_name,
-                        "is_up": port_number in active_ports
-                    })
+
+                if requested_ports:
+                    placeholders = ", ".join("?" for _ in requested_ports)
+                    cursor.execute(
+                        f"""
+                        SELECT LOCAL_PORT
+                        FROM QSYS2.NETSTAT_INFO
+                        WHERE TCP_STATE = 'LISTEN'
+                          AND LOCAL_PORT IN ({placeholders})
+                        """,
+                                                *requested_ports,
+                    )
+                    active_ports = {
+                        int(r[0]) for r in cursor.fetchall() if r[0] is not None and str(r[0]).isdigit()
+                    }
+
+                    for p_info in target_ports:
+                        if self.check_cancelled():
+                            return
+                        p_num = p_info.get("port") if isinstance(p_info, dict) else p_info
+                        p_name = p_info.get("name", f"PORT_{p_num}") if isinstance(p_info, dict) else str(p_num)
+                        try:
+                            port_number = int(p_num)
+                        except (TypeError, ValueError):
+                            continue
+                        port_status_list.append({
+                            "port": port_number,
+                            "name": p_name,
+                            "service": p_name,
+                            "is_up": port_number in active_ports
+                        })
             except Exception as e:
                 metric_errors.append(f"ports: {e}")
 
@@ -695,5 +782,4 @@ class SingleLparRunnable(QRunnable):
                 maybe_send_asp_alert(str(result.get("server") or self.server), float(result.get("asp", 0.0) or 0.0))
             except Exception:
                 pass
-            save_single_lpar_log(result, SERVER_CONFIGS)
-            self.signals.server_fetched.emit(result)
+            _persist_and_emit(self, result)

@@ -153,19 +153,23 @@ class RefreshStatusWidget(QWidget):
         layout.setSpacing(1)
         layout.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
-        self.header_label = QLabel("● Last Auto-Refresh")
-        self.header_label.setStyleSheet("color: #3fb950; font-size: 11px; font-weight: bold;")
+        self.header_label = QLabel("○ Auto-Refresh Paused")
+        self.header_label.setStyleSheet("color: #8b949e; font-size: 11px; font-weight: bold;")
         layout.addWidget(self.header_label)
 
-        self.time_label = QLabel("--:-- --")
+        self.time_label = QLabel()
         self.time_label.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
-        self.time_label.setStyleSheet("color: #ffffff;")
         layout.addWidget(self.time_label)
 
-        self.date_label = QLabel("--- --, ----")
+        self.date_label = QLabel()
         self.date_label.setFont(QFont("Segoe UI", 9))
-        self.date_label.setStyleSheet("color: #8b949e;")
         layout.addWidget(self.date_label)
+
+        self.clock_timer = QTimer(self)
+        self.clock_timer.setInterval(1000)
+        self.clock_timer.timeout.connect(self.update_timestamp)
+        self.update_timestamp()
+        self.clock_timer.start()
 
     def set_theme(self, is_dark_theme):
         self.is_dark_theme = is_dark_theme
@@ -178,15 +182,20 @@ class RefreshStatusWidget(QWidget):
     def set_active_state(self, active: bool):
         if active:
             self.header_label.setText("● Auto-Refresh Active")
-            self.header_label.setStyleSheet("color: #3fb950; font-size: 11px; font-weight: bold;")
+            self.header_label.setStyleSheet(
+                "color: #3fb950; font-size: 11px; font-weight: bold;"
+            )
         else:
             self.header_label.setText("○ Auto-Refresh Paused")
             muted_color = "#8b949e" if self.is_dark_theme else "#57606a"
-            self.header_label.setStyleSheet(f"color: {muted_color}; font-size: 11px; font-weight: bold;")
+            self.header_label.setStyleSheet(
+                f"color: {muted_color}; font-size: 11px; font-weight: bold;"
+            )
+
 
     def update_timestamp(self):
         now = QDateTime.currentDateTime()
-        self.time_label.setText(now.toString("hh:mm AP"))
+        self.time_label.setText(now.toString("hh:mm:ss AP"))
         self.date_label.setText(now.toString("MMM d, yyyy"))
 
 

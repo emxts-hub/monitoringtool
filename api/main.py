@@ -59,17 +59,19 @@ def delete_logs():
         filter=FieldFilter("timestamp", "<", cutoff)
     ).stream()
     batch = db.batch()
-    count = 0
+    batch_count = 0
+    deleted_count = 0
     for snapshot in snapshots:
         batch.delete(snapshot.reference)
-        count += 1
-        if count == 400:
+        batch_count += 1
+        deleted_count += 1
+        if batch_count == 400:
             batch.commit()
             batch = db.batch()
-            count = 0
-    if count:
+            batch_count = 0
+    if batch_count:
         batch.commit()
-    return jsonify({"deleted": count})
+    return jsonify({"deleted": deleted_count})
 
 
 if __name__ == "__main__":

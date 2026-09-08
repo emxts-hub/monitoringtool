@@ -10,3 +10,4 @@ dist/
 logs/
 *.spec
 .venv
+config.txt

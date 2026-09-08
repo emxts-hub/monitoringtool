@@ -11,7 +11,8 @@ from config import get_all_logs_dirs
 from PyQt6.QtCore import Qt, QPointF, QThread, pyqtSignal
 from PyQt6.QtGui import QColor, QFont, QPainter, QPen, QPolygonF, QCursor
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QPushButton, QFileDialog, QMessageBox
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QPushButton, QFileDialog,
+    QMessageBox, QCheckBox
 )
 
 
@@ -128,13 +129,19 @@ class MonthlyReportWidget(QWidget):
                                 continue
                 normalized_days = sorted(discovered_days)
 
+            if self.mode == "month" and current_month:
+                normalized_days = [0, 1]
+
             values_by_server = []
             for row in report_rows:
                 server = row.get("server")
                 day_map = row.get("day_map", {})
                 series = []
                 for day in normalized_days:
-                    value = day_map.get(day, day_map.get(str(day)))
+                    if self.mode == "month":
+                        value = row.get("month_avg")
+                    else:
+                        value = day_map.get(day, day_map.get(str(day)))
                     series.append(float(value) if value is not None else None)
                 values_by_server.append((server, series, row.get("month_avg", 0.0)))
 
@@ -212,17 +219,21 @@ class MonthlyReportWidget(QWidget):
                         painter.setBrush(Qt.BrushStyle.NoBrush)
 
                 painter.setPen(QPen(QColor(muted), 1))
-                for idx, day in enumerate(self.days):
-                    if len(self.days) > 1:
-                        x = int(round(left + x_step * idx))
-                    else:
-                        x = int(round(left + (right - left) / 2.0))
-                    if (
-                        len(self.days) <= 31
-                        or day % max(2, int(len(self.days) / 6)) == 0
-                        or idx == len(self.days) - 1
-                    ):
-                        painter.drawText(int(x) - 10, bottom + 18, 24, 16, Qt.AlignmentFlag.AlignCenter, str(day))
+                if self.mode == "month":
+                    painter.drawText(int(left) - 10, bottom + 18, 24, 16, Qt.AlignmentFlag.AlignCenter, "0")
+                    painter.drawText(int(right) - 10, bottom + 18, 24, 16, Qt.AlignmentFlag.AlignCenter, "1")
+                else:
+                    for idx, day in enumerate(self.days):
+                        if len(self.days) > 1:
+                            x = int(round(left + x_step * idx))
+                        else:
+                            x = int(round(left + (right - left) / 2.0))
+                        if (
+                            len(self.days) <= 31
+                            or day % max(2, int(len(self.days) / 6)) == 0
+                            or idx == len(self.days) - 1
+                        ):
+                            painter.drawText(int(x) - 10, bottom + 18, 24, 16, Qt.AlignmentFlag.AlignCenter, str(day))
 
                 painter.setPen(QPen(QColor(muted), 1))
                 for idx in range(6):
@@ -249,16 +260,17 @@ class MonthlyReportWidget(QWidget):
     class SummaryCard(QWidget):
         def __init__(self, title, value, subtitle, parent=None):
             super().__init__(parent)
+            self.setObjectName("summaryCard")
             self.setFixedHeight(72)
             self.title = QLabel(title)
             self.title.setFont(QFont("Segoe UI", 9))
-            self.title.setStyleSheet("color: #6b7280; background: transparent;")
+            self.title.setStyleSheet("color: #6b7280; background: transparent; border: none;")
             self.value = QLabel(value)
             self.value.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
-            self.value.setStyleSheet("color: #1f2937; background: transparent;")
+            self.value.setStyleSheet("color: #1f2937; background: transparent; border: none;")
             self.subtitle = QLabel(subtitle)
             self.subtitle.setFont(QFont("Segoe UI", 8))
-            self.subtitle.setStyleSheet("color: #6b7280; background: transparent;")
+            self.subtitle.setStyleSheet("color: #6b7280; background: transparent; border: none;")
             layout = QVBoxLayout(self)
             layout.setContentsMargins(12, 10, 12, 10)
             layout.setSpacing(2)
@@ -268,9 +280,16 @@ class MonthlyReportWidget(QWidget):
 
         def set_theme(self, is_dark_theme):
             if is_dark_theme:
-                self.setStyleSheet("QWidget { background-color: #161b22; border: 1px solid #30363d; border-radius: 8px; } QLabel { color: #e5e7eb; background: transparent; }")
+                text_color = "#f0f6fc"
+                muted_color = "#8b949e"
+                self.setStyleSheet("QWidget#summaryCard { background-color: #161b22; border: 1px solid #30363d; border-radius: 8px; }")
             else:
-                self.setStyleSheet("QWidget { background-color: #ffffff; border: 1px solid #d0d7de; border-radius: 8px; } QLabel { color: #1f2937; background: transparent; }")
+                text_color = "#1f2328"
+                muted_color = "#57606a"
+                self.setStyleSheet("QWidget#summaryCard { background-color: #ffffff; border: 1px solid #d0d7de; border-radius: 8px; }")
+            self.title.setStyleSheet(f"color: {muted_color}; background: transparent; border: none;")
+            self.value.setStyleSheet(f"color: {text_color}; background: transparent; border: none;")
+            self.subtitle.setStyleSheet(f"color: {muted_color}; background: transparent; border: none;")
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -283,6 +302,10 @@ class MonthlyReportWidget(QWidget):
         self._mode_buttons = []
         self._worker = None
         self._initial_loaded = False
+        self._system_checks = {}
+        self._selected_servers = set()
+        self._available_servers = set()
+        self._system_filters_initialized = False
 
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(16, 16, 16, 16)
@@ -317,6 +340,17 @@ class MonthlyReportWidget(QWidget):
         self.summary_label.setStyleSheet("color: #8b949e;")
         self.main_layout.addWidget(self.summary_label)
 
+        self.system_filter_label = QLabel("Systems:")
+        self.system_filter_label.setFont(self._make_font("Segoe UI", 9, QFont.Weight.Bold))
+        self.system_filter_label.setStyleSheet("color: #8b949e;")
+        self.main_layout.addWidget(self.system_filter_label)
+
+        self.system_filter_widget = QWidget()
+        self.system_filter_layout = QHBoxLayout(self.system_filter_widget)
+        self.system_filter_layout.setContentsMargins(0, 0, 0, 0)
+        self.system_filter_layout.setSpacing(8)
+        self.main_layout.addWidget(self.system_filter_widget)
+
         self.cpu_panel = self._build_metric_section("CPU")
         self.asp_panel = self._build_metric_section("ASP")
         self.main_layout.addWidget(self.cpu_panel)
@@ -326,7 +360,7 @@ class MonthlyReportWidget(QWidget):
         self.loading_overlay.hide()
 
         self.set_theme(self.is_dark_theme)
-        self.load_month_options()
+        self.load_month_options(include_disk=False)
 
     def showEvent(self, event):
         """Automatically fetch and display month data when tab becomes visible."""
@@ -380,18 +414,28 @@ class MonthlyReportWidget(QWidget):
 
         cpu_report = self._build_month_report(month_key, self.cpu_chart.mode, metric_filter="CPU")
         asp_report = self._build_month_report(month_key, self.asp_chart.mode, metric_filter="ASP")
+        cpu_report = self._filter_report_servers(cpu_report)
+        asp_report = self._filter_report_servers(asp_report)
 
         try:
             if file_path.endswith(".xlsx"):
                 try:
                     import openpyxl
+                    from openpyxl.chart import LineChart, Reference
+                    from openpyxl.chart.shapes import GraphicalProperties
                     from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
                     from openpyxl.utils import get_column_letter
 
                     wb = openpyxl.Workbook()
                     ws = wb.active
-                    ws.title = "Monthly Report"
+                    ws.title = "Summary"
                     ws.views.sheetView[0].showGridLines = True
+                    charts_ws = wb.create_sheet(title="Charts", index=1)
+                    charts_ws.sheet_view.showGridLines = False
+                    charts_ws["A1"] = f"IBM i Monthly ASP/CPU Usage ({month_key})"
+                    charts_ws["A1"].font = Font(name="Segoe UI", size=18, bold=True, color="1F2937")
+                    charts_ws["A2"] = "Selected systems · Daily averages"
+                    charts_ws["A2"].font = Font(name="Segoe UI", size=10, italic=True, color="6B7280")
 
                     title_font = Font(name="Segoe UI", size=16, bold=True, color="1F2937")
                     sub_font = Font(name="Segoe UI", size=9, italic=True, color="6B7280")
@@ -410,7 +454,7 @@ class MonthlyReportWidget(QWidget):
                         bottom=Side(style="thin", color="D0D7DE")
                     )
 
-                    ws["A1"] = f"IBM i Monthly ASP/CPU Report ({month_key})"
+                    ws["A1"] = f"IBM i Monthly ASP/CPU Summary ({month_key})"
                     ws["A1"].font = title_font
                     ws["A2"] = "Source: Local persisted data"
                     ws["A2"].font = sub_font
@@ -425,7 +469,8 @@ class MonthlyReportWidget(QWidget):
                         current_row += 1
 
                         days = report.get("days", [])
-                        headers = ["Server"] + [f"Day {d}" for d in days] + ["Month Avg"]
+                        header_row = current_row
+                        headers = ["Server"] + [str(d) for d in days] + ["Month Avg"]
 
                         for col_idx, header in enumerate(headers, start=1):
                             cell = ws.cell(row=current_row, column=col_idx, value=header)
@@ -436,6 +481,7 @@ class MonthlyReportWidget(QWidget):
                         current_row += 1
 
                         matching_rows = [r for r in report.get("rows", []) if r.get("metric") == target_metric]
+                        first_data_row = current_row
 
                         for r_idx, row in enumerate(matching_rows):
                             day_map = row.get("day_map", {})
@@ -465,9 +511,73 @@ class MonthlyReportWidget(QWidget):
                             current_row += 1
 
                         current_row += 2
+                        return {
+                            "header_row": header_row,
+                            "first_data_row": first_data_row,
+                            "last_data_row": current_row - 3,
+                            "day_count": len(days),
+                        }
 
-                    append_metric_table(cpu_report, "CPU Usage", "CPU")
-                    append_metric_table(asp_report, "ASP Usage", "ASP")
+                    cpu_table = append_metric_table(cpu_report, "CPU Usage", "CPU")
+                    asp_table = append_metric_table(asp_report, "ASP Usage", "ASP")
+
+                    def add_metric_chart(table_info, title, anchor):
+                        if table_info["day_count"] < 1 or table_info["last_data_row"] < table_info["first_data_row"]:
+                            return
+                        chart = LineChart()
+                        chart.title = title
+                        chart.style = 2
+                        chart.y_axis.title = "Usage (%)"
+                        chart.x_axis.title = "Days"
+                        chart.x_axis.delete = False
+                        chart.y_axis.delete = False
+                        chart.x_axis.axPos = "b"
+                        chart.y_axis.axPos = "l"
+                        chart.x_axis.majorTickMark = "out"
+                        chart.y_axis.majorTickMark = "out"
+                        chart.x_axis.numFmt = "0"
+                        chart.y_axis.numFmt = "0%"
+                        chart.y_axis.scaling.min = 0.01
+                        chart.y_axis.scaling.max = 1
+                        chart.y_axis.majorUnit = 0.1
+                        chart.y_axis.crosses = "min"
+                        chart.x_axis.tickLblPos = "low"
+                        chart.x_axis.tickLblSkip = 1
+                        chart.height = 8
+                        chart.width = 22
+
+                        data = Reference(
+                            ws,
+                            min_col=1,
+                            max_col=table_info["day_count"] + 1,
+                            min_row=table_info["first_data_row"],
+                            max_row=table_info["last_data_row"],
+                        )
+                        categories = Reference(
+                            ws,
+                            min_col=2,
+                            max_col=table_info["day_count"] + 1,
+                            min_row=table_info["header_row"],
+                        )
+                        chart.add_data(data, titles_from_data=True, from_rows=True)
+                        chart.set_categories(categories)
+                        chart.legend.position = "r"
+                        series_colors = [
+                            "2563EB", "DC2626", "EAB308", "16A34A", "EA580C",
+                            "0891B2", "7C3AED", "DB2777", "4F46E5", "65A30D",
+                        ]
+                        for index, series in enumerate(chart.series):
+                            color = series_colors[index % len(series_colors)]
+                            series.graphicalProperties = GraphicalProperties()
+                            series.graphicalProperties.line.solidFill = color
+                            series.graphicalProperties.line.width = 22000
+                            series.marker.symbol = "circle"
+                            series.marker.size = 5
+                        charts_ws.add_chart(chart, anchor)
+
+                    add_metric_chart(cpu_table, "CPU Usage Per System", "A4")
+                    add_metric_chart(asp_table, "ASP Usage Per System", "A25")
+                    charts_ws.column_dimensions["A"].width = 3
 
                     for col in ws.columns:
                         max_len = max(len(str(cell.value or "")) for cell in col)
@@ -478,8 +588,12 @@ class MonthlyReportWidget(QWidget):
                     m_name = month_name[month_num]
                     days_in_month = monthrange(year, month_num)[1]
 
-                    hourly_cpu = self._extract_hourly_data(month_key, metric="cpu")
-                    hourly_asp = self._extract_hourly_data(month_key, metric="asp")
+                    hourly_cpu = self._filter_hourly_servers(
+                        self._extract_hourly_data(month_key, metric="cpu")
+                    )
+                    hourly_asp = self._filter_hourly_servers(
+                        self._extract_hourly_data(month_key, metric="asp")
+                    )
 
                     servers = sorted(list(set(
                         [r.get("server") for r in cpu_report.get("rows", [])] +
@@ -614,7 +728,7 @@ class MonthlyReportWidget(QWidget):
         """Fallback writer for CSV outputs."""
         with open(file_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow(["IBM i Monthly ASP/CPU Report"])
+            writer.writerow(["IBM i Monthly ASP/CPU Summary"])
             writer.writerow(["Source: Local persisted data"])
             writer.writerow([])
 
@@ -742,6 +856,58 @@ class MonthlyReportWidget(QWidget):
             self.asp_chart.mode = mode.lower()
         self.refresh_report()
 
+    def _filter_report_servers(self, report):
+        if not self._system_filters_initialized:
+            return report
+        filtered = dict(report)
+        filtered["rows"] = [
+            row for row in report.get("rows", [])
+            if row.get("server") in self._selected_servers
+        ]
+        return filtered
+
+    def _filter_hourly_servers(self, hourly_data):
+        if not self._system_filters_initialized:
+            return hourly_data
+        return {
+            server: values
+            for server, values in hourly_data.items()
+            if server in self._selected_servers
+        }
+
+    def _set_system_filters(self, servers):
+        servers = sorted({server for server in servers if server})
+        previous_selection = set(self._selected_servers)
+        self._available_servers = set(servers)
+        self._selected_servers = (
+            {server for server in servers if server in previous_selection}
+            if self._system_filters_initialized
+            else set(servers)
+        )
+        self._system_filters_initialized = True
+
+        while self.system_filter_layout.count():
+            item = self.system_filter_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+        self._system_checks.clear()
+
+        for server in servers:
+            checkbox = QCheckBox(server)
+            checkbox.setChecked(server in self._selected_servers)
+            checkbox.stateChanged.connect(self._on_system_filter_changed)
+            self._system_checks[server] = checkbox
+            self.system_filter_layout.addWidget(checkbox)
+        self.system_filter_layout.addStretch()
+
+    def _on_system_filter_changed(self, _state):
+        self._selected_servers = {
+            server for server, checkbox in self._system_checks.items()
+            if checkbox.isChecked()
+        }
+        self.refresh_report()
+
     def _make_font(self, family="Segoe UI", point_size=9, weight=QFont.Weight.Normal):
         font = QFont(family)
         try:
@@ -817,16 +983,9 @@ class MonthlyReportWidget(QWidget):
 
     def set_log_data_store(self, log_data_store, source_mode=None):
         self.log_data_store = log_data_store if log_data_store is not None else {}
-        disk_store = self._load_disk_log_store()
-        for date_key, batches in disk_store.items():
-            if date_key not in self.log_data_store:
-                self.log_data_store[date_key] = []
-            for batch in batches:
-                if batch not in self.log_data_store[date_key]:
-                    self.log_data_store[date_key].append(batch)
         if source_mode is not None:
             self.source_mode = source_mode
-        self.load_month_options()
+        self.load_month_options(include_disk=self.source_mode != "local")
         self.sync_status_label.setText("Source: Local persisted data")
         if self.isVisible():
             self.refresh_report()
@@ -904,8 +1063,8 @@ class MonthlyReportWidget(QWidget):
         if self.isVisible():
             self.refresh_report()
 
-    def load_month_options(self):
-        disk_store = self._load_disk_log_store()
+    def load_month_options(self, include_disk=True):
+        disk_store = self._load_disk_log_store() if include_disk else {}
         merged_store = {**disk_store, **self.log_data_store}
         months = set()
         for date_key in merged_store.keys():
@@ -944,6 +1103,15 @@ class MonthlyReportWidget(QWidget):
         self._worker.start()
 
     def _on_report_ready(self, cpu_report, asp_report, month_key):
+        servers = {
+            row.get("server")
+            for report in (cpu_report, asp_report)
+            for row in report.get("rows", [])
+            if row.get("server")
+        }
+        self._set_system_filters(servers)
+        cpu_report = self._filter_report_servers(cpu_report)
+        asp_report = self._filter_report_servers(asp_report)
         self._render_metric_panel(self.cpu_chart, self._summary_cards["CPU"], cpu_report, "CPU")
         self._render_metric_panel(self.asp_chart, self._summary_cards["ASP"], asp_report, "ASP")
         self.title_label.setText(f"IBM i Monthly ASP/CPU Report ({month_key})")
@@ -979,6 +1147,7 @@ class MonthlyReportWidget(QWidget):
             )
             row_widget = QWidget()
             row_widget.setFixedHeight(26)
+            row_widget.setStyleSheet("background: transparent; border: none;")
             row_layout = QHBoxLayout(row_widget)
             row_layout.setContentsMargins(0, 0, 0, 0)
             row_layout.setSpacing(8)

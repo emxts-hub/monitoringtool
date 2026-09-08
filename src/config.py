@@ -170,41 +170,32 @@ DEFAULT_EMAIL_ALERTS = {
 }
 
 
-def load_server_configs():
-    """Loads server configurations from config.json or returns default."""
+def _load_config_mapping(key, default):
+    """Load a mapping from config.json, falling back when the shape is invalid."""
     config_path = get_config_path()
     if os.path.exists(config_path):
         try:
             with open(config_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                return data.get("SERVER_CONFIGS", DEFAULT_SERVER_CONFIGS)
+                value = data.get(key)
+                if isinstance(value, dict):
+                    return value
         except Exception:
-            return DEFAULT_SERVER_CONFIGS.copy()
-    return DEFAULT_SERVER_CONFIGS.copy()
+            pass
+    return default.copy()
+
+
+def load_server_configs():
+    """Loads server configurations from config.json or returns default."""
+    return _load_config_mapping("SERVER_CONFIGS", DEFAULT_SERVER_CONFIGS)
 
 def load_expected_subsystems():
     """Loads expected subsystems from config.json or returns default."""
-    config_path = get_config_path()
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                return data.get("EXPECTED_SUBSYSTEMS", DEFAULT_EXPECTED_SUBSYSTEMS)
-        except Exception:
-            return DEFAULT_EXPECTED_SUBSYSTEMS.copy()
-    return DEFAULT_EXPECTED_SUBSYSTEMS.copy()
+    return _load_config_mapping("EXPECTED_SUBSYSTEMS", DEFAULT_EXPECTED_SUBSYSTEMS)
 
 def load_expected_ports():
     """Loads expected ports from config.json or returns default."""
-    config_path = get_config_path()
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                return data.get("EXPECTED_PORTS", DEFAULT_EXPECTED_PORTS)
-        except Exception:
-            return DEFAULT_EXPECTED_PORTS.copy()
-    return DEFAULT_EXPECTED_PORTS.copy()
+    return _load_config_mapping("EXPECTED_PORTS", DEFAULT_EXPECTED_PORTS)
 
 
 # Optional keyring integration for secure password storage
@@ -384,7 +375,7 @@ def safe_json_append_and_save(file_path: str, new_entry: dict, max_retries: int 
                         if not isinstance(existing_data, list):
                             existing_data = [existing_data]
                     except json.JSONDecodeError:
-                        existing_data = []
+                        return False
 
             # Append new entry to the fresh disk state
             existing_data.append(new_entry)

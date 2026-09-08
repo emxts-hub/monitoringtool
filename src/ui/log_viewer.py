@@ -200,7 +200,9 @@ class LogViewerWidget(QWidget):
         self.section_headers = []
         self._history_loading = False
         self._history_reload_pending = False
-        self._history_thread_pool = QThreadPool.globalInstance()
+        self._history_reload_force = False
+        self._history_thread_pool = QThreadPool(self)
+        self._history_thread_pool.setMaxThreadCount(1)
         self._last_log_scan_signature = None
         self._last_active_lpars_signature = None
         self._date_selected_by_user = False
@@ -577,7 +579,9 @@ class LogViewerWidget(QWidget):
         # Handle pending reloads after UI completes update
         if self._history_reload_pending:
             self._history_reload_pending = False
-            self.load_log_history(silent=True)
+            force_reload = self._history_reload_force
+            self._history_reload_force = False
+            self.load_log_history(silent=True, force=force_reload)
 
     def _on_history_error(self, err_msg):
         self._history_loading = False
@@ -601,7 +605,7 @@ class LogViewerWidget(QWidget):
                     continue
         return signature
 
-    def load_log_history(self, active_server_configs=None, silent=False):
+    def load_log_history(self, active_server_configs=None, silent=False, force=False):
         if active_server_configs is not None:
             normalized_names = sorted({
                 self._normalize_server_name(name)
@@ -613,12 +617,13 @@ class LogViewerWidget(QWidget):
 
         active_signature = tuple(self.active_lpars)
         scan_signature = self._compute_log_scan_signature()
-        if self.log_data_store and scan_signature == self._last_log_scan_signature and active_signature == self._last_active_lpars_signature:
+        if self.log_data_store and not force and scan_signature == self._last_log_scan_signature and active_signature == self._last_active_lpars_signature:
             self._update_last_refresh_timestamp()
             return
 
         if self._history_loading:
             self._history_reload_pending = True
+            self._history_reload_force = self._history_reload_force or force
             return
 
         self._history_loading = True

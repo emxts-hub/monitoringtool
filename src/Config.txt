@@ -27,3 +27,5 @@ JDAP04 192.168.54.30 RRGJDAP04
 JDAP05 192.168.55.30 RRGJDAP05
 JDAP06 192.168.56.30 RRGJDAP06
 JDAP07 192.168.51.30 SEAWOLF
+
+reymart_delara@questronix.com.ph, brylle.richard_paraoan@questronix.com.ph, carl.sonmuel_peregrino@questronix.com.ph, henelyn.jhoy_mitra@questronix.com.ph, jherico.marvin_bunao@questronix.com.ph, john.reve_esclamado@questronix.com.ph, jonas_pascual@questronix.com.ph, mark.christian_ugalde@questronix.com.ph, patrick.louie_sandoval@questronix.com.ph, romar_dizon@questronix.com.ph

@@ -1,5 +1,5 @@
 #define AppName "WinMacOS"
-#define AppVersion "1.2.1"
+#define AppVersion "3.1.1"
 #define AppPublisher "emxts-hub"
 #define AppExeName "WinMacOS.exe"
 
