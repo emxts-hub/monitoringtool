@@ -6,7 +6,7 @@ import time
 from datetime import datetime, timezone
 
 APP_NAME = "IBMi_Dashboard"
-APP_VERSION = "3.1.1"
+APP_VERSION = "3.1.5"
 USER_PROFILE = os.environ.get("USERPROFILE") or os.path.expanduser("~")
 ONEDRIVE_SHAREPOINT_PATH = os.path.join(
     USER_PROFILE,
