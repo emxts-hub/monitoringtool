@@ -20,10 +20,13 @@ from config import (
     load_email_alerts, 
     get_resource_path, 
     EXPECTED_SUBSYSTEMS,
-    safe_json_append_and_save
+    safe_json_append_and_save,
+    safe_json_save,
 )
 
 _LOG_WRITE_LOCK = threading.Lock()
+_LOG_MUTEX_NAME = "Local\\WinMacOS_DailyLogWrite"
+_LOG_MUTEX_WAIT_MS = 30000
 _ALERT_STATE_LOCK = threading.Lock()
 _LAST_ASP_ALERT_STATE = {}
 _LAST_ASP_SOUND_STATE = {"armed": False, "sent_at": 0.0}
@@ -346,25 +349,24 @@ def has_vpn_ip(prefix="10.212."):
 
 
 def cleanup_old_logs(days_to_keep=30):
-    """Deletes log files in the 'logs' folder older than days_to_keep."""
+    """Delete canonical daily log files older than the retention period."""
     logs_dir = get_logs_dir()
     cutoff_date = datetime.now() - timedelta(days=days_to_keep)
     log_pattern = re.compile(r"^lpar_history_(\d{4}-\d{2}-\d{2})\.json$")
-
+    
     if not os.path.exists(logs_dir):
         return
 
     for filename in os.listdir(logs_dir):
         match = log_pattern.match(filename)
-        if match:
-            file_date_str = match.group(1)
-            try:
-                file_date = datetime.strptime(file_date_str, "%Y-%m-%d")
-                if file_date < cutoff_date:
-                    file_path = os.path.join(logs_dir, filename)
-                    os.remove(file_path)
-            except Exception:
-                pass
+        if not match:
+            continue
+        try:
+            file_date = datetime.strptime(match.group(1), "%Y-%m-%d")
+            if file_date < cutoff_date:
+                os.remove(os.path.join(logs_dir, filename))
+        except (OSError, ValueError):
+            pass
 
 
 def _has_server_issues(sys_info, server_configs=None):
@@ -412,7 +414,105 @@ def _has_server_issues(sys_info, server_configs=None):
 
 def save_single_lpar_log(sys_info, server_configs=None):
     with _LOG_WRITE_LOCK:
-        return _save_single_lpar_log(sys_info, server_configs)
+        mutex_handle = _acquire_log_mutex()
+        if mutex_handle is None:
+            return "file_busy"
+        try:
+            return _save_single_lpar_log(sys_info, server_configs)
+        finally:
+            _release_log_mutex(mutex_handle)
+
+
+def _acquire_log_mutex():
+    """Serialize daily log replacement across multiple app processes on Windows."""
+    if sys.platform != "win32":
+        return True
+    try:
+        import ctypes
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.CreateMutexW.restype = ctypes.c_void_p
+        kernel32.WaitForSingleObject.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+        kernel32.WaitForSingleObject.restype = ctypes.c_uint32
+        kernel32.ReleaseMutex.argtypes = [ctypes.c_void_p]
+        kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
+        handle = kernel32.CreateMutexW(None, False, _LOG_MUTEX_NAME)
+        if not handle:
+            return None
+        result = kernel32.WaitForSingleObject(handle, _LOG_MUTEX_WAIT_MS)
+        if result in (0, 0x80):  # WAIT_OBJECT_0 or WAIT_ABANDONED
+            return (kernel32, handle)
+        kernel32.CloseHandle(handle)
+    except (AttributeError, OSError, TypeError):
+        return None
+    return None
+
+
+def _release_log_mutex(mutex_handle):
+    if mutex_handle is True or mutex_handle is None or sys.platform != "win32":
+        return
+    kernel32, handle = mutex_handle
+    try:
+        kernel32.ReleaseMutex(handle)
+        kernel32.CloseHandle(handle)
+    except OSError:
+        pass
+
+
+def _read_log_entries(file_path):
+    try:
+        with open(file_path, "r", encoding="utf-8") as handle:
+            data = json.load(handle) or []
+        if not isinstance(data, list):
+            data = [data]
+        return data
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def _merge_and_remove_conflict_logs(canonical_path, date_str):
+    """Merge OneDrive conflict snapshots into the daily file, then remove them."""
+    logs_dir = os.path.dirname(canonical_path)
+    conflict_pattern = re.compile(
+        rf"^lpar_history_{re.escape(date_str)}-.+\.json$",
+        re.IGNORECASE,
+    )
+    conflict_paths = [
+        os.path.join(logs_dir, name)
+        for name in os.listdir(logs_dir)
+        if conflict_pattern.match(name)
+    ]
+    if not conflict_paths:
+        return
+
+    canonical_entries = _read_log_entries(canonical_path)
+    if canonical_entries is None:
+        return
+
+    merged_entries = list(canonical_entries)
+    signatures = {
+        json.dumps(entry, sort_keys=True, default=str)
+        for entry in merged_entries
+    }
+    processed_paths = []
+    for conflict_path in conflict_paths:
+        conflict_entries = _read_log_entries(conflict_path)
+        if conflict_entries is None:
+            continue
+        for entry in conflict_entries:
+            signature = json.dumps(entry, sort_keys=True, default=str)
+            if signature not in signatures:
+                merged_entries.append(entry)
+                signatures.add(signature)
+        processed_paths.append(conflict_path)
+
+    if not safe_json_save(canonical_path, merged_entries):
+        return
+    for conflict_path in processed_paths:
+        try:
+            os.remove(conflict_path)
+        except OSError:
+            pass
 
 
 def _save_single_lpar_log(sys_info, server_configs=None):
@@ -446,6 +546,7 @@ def _save_single_lpar_log(sys_info, server_configs=None):
                 rec_server = str(rec.get("server") or rec.get("lpar") or rec.get("config_key") or "").strip()
                 rec_ts = str(rec.get("timestamp") or "").strip()
                 if rec_server == server_name and rec_ts.startswith(current_hour_prefix):
+                    _merge_and_remove_conflict_logs(filepath, date_str)
                     return "already_recorded"
     except json.JSONDecodeError:
         return "failed"
@@ -532,22 +633,17 @@ def _save_single_lpar_log(sys_info, server_configs=None):
     # OneDrive-safe atomic append; the caller holds the process-wide log lock.
     if not safe_json_append_and_save(filepath, entry):
         return "file_busy"
+    _merge_and_remove_conflict_logs(filepath, date_str)
     cleanup_old_logs(days_to_keep=30)
     return "saved"
 
 
 def _persist_and_emit(runnable, result):
+    runnable.signals.server_fetched.emit(result)
     persistence_status = save_single_lpar_log(result, SERVER_CONFIGS)
-    if persistence_status in ("saved", "already_recorded"):
-        runnable.signals.server_fetched.emit(result)
-    else:
-        runnable.signals.server_failed.emit({
-            "server": runnable.server,
-            "status": "OFFLINE",
-            "error": f"Log persistence {persistence_status}; result withheld.",
-        })
+    if persistence_status not in ("saved", "already_recorded"):
         print(
-            f"[{runnable.server}] Result not emitted because log persistence "
+            f"[{runnable.server}] Live result emitted, but log persistence "
             f"returned {persistence_status}."
         )
 

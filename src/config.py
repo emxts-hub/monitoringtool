@@ -18,10 +18,7 @@ ONEDRIVE_SHAREPOINT_PATH = os.path.join(
     "ASPCPU logs",
 )
 
-# By default, disable the hard expiration gate. Set this explicitly only when
-# you intentionally want to enforce a release cutoff for a specific build.
-# Accepts an ISO-8601 datetime string from an environment variable as an override.
-HARD_EXPIRATION_DATE = None
+HARD_EXPIRATION_DATE = datetime(2026, 12, 31, tzinfo=timezone.utc)
 _expiration_env = os.getenv("APP_HARD_EXPIRATION_DATE")
 if _expiration_env:
     try:

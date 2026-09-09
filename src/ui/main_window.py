@@ -1675,8 +1675,7 @@ class IBMiDashboard(QMainWindow):
 
         self.refresh_widget.set_active_state(True)
         self._show_sync_loading("Starting independent server refreshes...")
-        self._schedule_independent_refreshes()
-        self._ensure_server_timers_alive()
+        self.fetch_data(force=True)
 
     def stop_monitoring(self):
         self.is_monitoring = False
@@ -1900,6 +1899,7 @@ class IBMiDashboard(QMainWindow):
             card.last_error_reason = str(failure.get("error") or "Fetch failed")
             card.set_status("OFFLINE")
         self.completed_threads_count += 1
+        self._reschedule_server_timer(runnable.server, self._next_retry_delay_ms())
         if self.completed_threads_count >= self.pending_lpar_count:
             self.on_all_lpars_finished()
 
@@ -1926,6 +1926,7 @@ class IBMiDashboard(QMainWindow):
             card.update_data(lpar_data)
             card._sync_health_summary()
 
+        self._reschedule_server_timer(runnable.server, self.min_refresh_interval_ms)
         if self.completed_threads_count >= self.pending_lpar_count:
             self.on_all_lpars_finished()
 

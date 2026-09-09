@@ -305,7 +305,7 @@ class LogViewerWidget(QWidget):
         self.cpu_table = self._build_matrix_table()
         self.container_layout.addWidget(self.cpu_table)
 
-        self.container_layout.addWidget(self._create_section_header("Real-time Refresh Log Stream"))
+        self.container_layout.addWidget(self._create_section_header("Real-time down logs"))
         self.stream_table = QTableWidget()
         self.stream_table.setColumnCount(8)
         self.stream_table.setHorizontalHeaderLabels([

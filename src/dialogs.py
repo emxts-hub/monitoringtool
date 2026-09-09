@@ -260,7 +260,7 @@ class LparSettingsDialog(QDialog):
         # Threshold and cooldown
         h_thresh = QHBoxLayout()
         h_thresh.addWidget(QLabel("Threshold %:"))
-        self.threshold_input = QLineEdit(str(email_cfg.get("threshold_percent", 40)))
+        self.threshold_input = QLineEdit(str(email_cfg.get("threshold_percent", 90)))
         self.threshold_input.setMaximumWidth(80)
         h_thresh.addWidget(self.threshold_input)
         h_thresh.addWidget(QLabel("Cooldown minutes:"))
